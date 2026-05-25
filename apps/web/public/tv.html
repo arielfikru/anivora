@@ -146,7 +146,7 @@
     var box = document.getElementById("vbox");
     box.innerHTML = '<video id="vid" class="focusable" controls autoplay playsinline ' +
       'data-base="' + esc(base) + '" data-i="' + i + '" ' +
-      'onerror="window.__tvNext(this)" ' +
+      'onerror="window.__tvNext(this)" onended="window.__tvGoNext()" ' +
       'style="width:100%;max-width:1280px;background:#000" ' +
       'src="' + esc(base) + "play_" + MP4_RES[i] + '.mp4"></video>';
     var v = document.getElementById("vid");
@@ -162,6 +162,33 @@
       'style="width:100%;max-width:1280px;height:520px;border:0;background:#000"></iframe>';
   };
 
+  // Auto-advance: navigate to the next episode's watch hash. Set when the
+  // anime's ordered episode list is known (see findNext below).
+  window.__tvGoNext = function () {
+    if (window.__tvNextHash) location.hash = window.__tvNextHash;
+  };
+
+  // Fetch the anime, flatten its seasons into one ordered episode list, and
+  // resolve the slug that follows `curSlug`. Old TVs lack Array.findIndex, so
+  // walk the list by hand.
+  function findNext(animeSlug, curSlug, done) {
+    if (!animeSlug) { done(""); return; }
+    api("getAnime", { slug: animeSlug }, function (res) {
+      var seasons = res.seasons || [], flat = [];
+      for (var s = 0; s < seasons.length; s++) {
+        var eps = seasons[s].episodes || [];
+        for (var e = 0; e < eps.length; e++) flat.push(eps[e]);
+      }
+      for (var i = 0; i < flat.length; i++) {
+        if (flat[i].slug === curSlug) {
+          done(i + 1 < flat.length ? flat[i + 1].slug : "");
+          return;
+        }
+      }
+      done("");
+    }, function () { done(""); });
+  }
+
   function viewWatch(slug, animeSlug) {
     app.innerHTML = '<div class="center muted">Memuat…</div>';
     api("getEpisode", { slug: slug }, function (res) {
@@ -171,23 +198,31 @@
       // fine from this host but fail talking directly to the b-cdn.net CDN.
       var guid = ep.bunnyVideoId || "";
       var base = guid ? (ORIGIN + "/v/" + guid + "/") : "";
-      var h = '<a class="btn focusable" href="' + back + '">‹ Kembali</a>' +
-              '<a class="btn focusable" href="#/">Beranda</a>' +
-              "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
-      h += '<div id="vbox"></div><div style="margin:14px 0">';
-      if (base) {
-        h += '<span class="muted" style="margin-right:8px">Kualitas:</span>';
-        for (var i = 0; i < MP4_RES.length; i++) {
-          h += '<span class="btn focusable" onclick="window.__tvRes(\'' +
-               esc(base) + "'," + i + ')">' + MP4_RES[i] + "</span>";
+
+      findNext(animeSlug, slug, function (nextSlug) {
+        window.__tvNextHash =
+          nextSlug ? "#/watch/" + nextSlug + (animeSlug ? "?a=" + animeSlug : "") : "";
+
+        var h = '<a class="btn focusable" href="' + back + '">‹ Kembali</a>' +
+                '<a class="btn focusable" href="#/">Beranda</a>';
+        if (window.__tvNextHash)
+          h += '<a class="btn focusable" href="' + window.__tvNextHash + '">Episode Berikutnya ›</a>';
+        h += "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
+        h += '<div id="vbox"></div><div style="margin:14px 0">';
+        if (base) {
+          h += '<span class="muted" style="margin-right:8px">Kualitas:</span>';
+          for (var i = 0; i < MP4_RES.length; i++) {
+            h += '<span class="btn focusable" onclick="window.__tvRes(\'' +
+                 esc(base) + "'," + i + ')">' + MP4_RES[i] + "</span>";
+          }
         }
-      }
-      if (ep.embedUrl)
-        h += '<span class="btn focusable" onclick="window.__tvEmbed(\'' + esc(ep.embedUrl) + '\')">Embed</span>';
-      h += "</div>";
-      app.innerHTML = h; collect();
-      if (base) window.__tvRes(base, 0);
-      else app.innerHTML += '<div class="muted">Video belum tersedia.</div>';
+        if (ep.embedUrl)
+          h += '<span class="btn focusable" onclick="window.__tvEmbed(\'' + esc(ep.embedUrl) + '\')">Embed</span>';
+        h += "</div>";
+        app.innerHTML = h; collect();
+        if (base) window.__tvRes(base, 0);
+        else app.innerHTML += '<div class="muted">Video belum tersedia.</div>';
+      });
     }, showErr);
   }
 
