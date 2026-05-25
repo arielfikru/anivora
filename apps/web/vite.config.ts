@@ -29,11 +29,13 @@ export default defineConfig({
 				plugins: ["babel-plugin-react-compiler"],
 			},
 		}),
-		// Smart TV browsers (Tizen/webOS/Android TV WebView) can run old Chromium
-		// that cannot parse the default modern-ESM output, leaving a white screen.
-		// Emit a nomodule ES5 + polyfill bundle they load via SystemJS fallback.
+		// Smart TV browsers (Tizen/webOS/Android TV WebView) can run very old
+		// Chromium that cannot parse modern syntax, leaving a white screen.
+		// Including `ie >= 11` forces babel to fully down-level to ES5 (default
+		// params, arrows, classes, etc.) — plain `chrome >= 51` left ES2015
+		// syntax intact, which the oldest TVs choke on ("Unexpected token =").
 		legacy({
-			targets: ["chrome >= 51", "safari >= 10"],
+			targets: ["ie >= 11", "chrome >= 38", "safari >= 9"],
 			modernPolyfills: true,
 		}),
 	],
