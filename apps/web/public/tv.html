@@ -138,20 +138,41 @@
   }
 
   /* Old TVs lack native HLS, so prefer Bunny's progressive MP4 renditions
-     (MP4 Fallback). Try resolutions high-to-low; step down on load error. */
-  var MP4_RES = ["720p", "1080p", "480p", "360p", "240p"];
+     (MP4 Fallback). Diagnostics are shown on screen since the TV has no
+     devtools. Manual resolution/embed buttons let us isolate the cause. */
+  var MP4_RES = ["720p", "480p", "360p", "240p", "1080p"];
   function mp4Base(playbackUrl) {
     return playbackUrl ? playbackUrl.replace(/playlist\.m3u8.*$/, "") : "";
   }
-  window.__tvVideoError = function (v) {
-    var i = parseInt(v.getAttribute("data-i"), 10) + 1;
-    var base = v.getAttribute("data-base");
-    if (i < MP4_RES.length) {
-      v.setAttribute("data-i", i);
-      v.src = base + "play_" + MP4_RES[i] + ".mp4";
-      v.load();
-      try { v.play(); } catch (e) {}
+  function dbg(msg) {
+    var d = document.getElementById("vdbg");
+    if (d) d.innerHTML += esc(msg) + "\n";
+  }
+  function ERRTXT(c) {
+    return ["?", "ABORTED", "NETWORK", "DECODE", "SRC_NOT_SUPPORTED"][c] || ("code " + c);
+  }
+  window.__tvPlay = function (url, embed) {
+    var box = document.getElementById("vbox");
+    if (embed) {
+      box.innerHTML = '<iframe src="' + esc(url) + '" allowfullscreen ' +
+        'style="width:100%;max-width:1280px;height:520px;border:0;background:#000"></iframe>';
+      dbg("embed: " + url);
+      return;
     }
+    box.innerHTML = '<video id="vid" class="focusable" controls autoplay playsinline ' +
+      'style="width:100%;max-width:1280px;background:#000" src="' + esc(url) + '"></video>';
+    var v = document.getElementById("vid");
+    dbg("try: " + url);
+    v.addEventListener("loadstart", function () { dbg("loadstart"); });
+    v.addEventListener("loadedmetadata", function () { dbg("metadata ok " + v.videoWidth + "x" + v.videoHeight); });
+    v.addEventListener("canplay", function () { dbg("canplay"); });
+    v.addEventListener("playing", function () { dbg("PLAYING ✓"); });
+    v.addEventListener("stalled", function () { dbg("stalled"); });
+    v.addEventListener("error", function () {
+      var e = v.error || {};
+      dbg("ERROR " + ERRTXT(e.code) + " netState=" + v.networkState);
+    });
+    try { v.play(); } catch (e) { dbg("play() threw: " + e); }
   };
 
   function viewWatch(slug, animeSlug) {
@@ -159,23 +180,22 @@
     api("getEpisode", { slug: slug }, function (res) {
       var ep = res.episode || {};
       var back = animeSlug ? "#/anime/" + animeSlug : "#/";
+      var base = mp4Base(ep.playbackUrl);
       var h = '<a class="btn focusable" href="' + back + '">‹ Kembali</a>' +
               '<a class="btn focusable" href="#/">Beranda</a>' +
               "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
-      var base = mp4Base(ep.playbackUrl);
-      if (base) {
-        h += '<video class="focusable" controls autoplay playsinline ' +
-             'data-base="' + esc(base) + '" data-i="0" ' +
-             'onerror="window.__tvVideoError(this)" ' +
-             'src="' + esc(base) + "play_" + MP4_RES[0] + '.mp4"></video>' +
-             '<div class="muted" style="margin-top:12px">MP4 progressive (fallback HLS untuk TV lama).</div>';
-      } else if (ep.embedUrl) {
-        h += '<iframe src="' + esc(ep.embedUrl) + '" allowfullscreen ' +
-             'style="width:100%;max-width:1280px;height:520px;border:0;background:#000"></iframe>';
-      } else {
-        h += '<div class="muted">Video belum tersedia.</div>';
+      h += '<div id="vbox"></div><div style="margin:14px 0">';
+      for (var i = 0; i < MP4_RES.length; i++) {
+        h += '<span class="btn focusable" onclick="window.__tvPlay(\'' +
+             esc(base) + "play_" + MP4_RES[i] + ".mp4'" + ')">MP4 ' + MP4_RES[i] + "</span>";
       }
+      if (ep.playbackUrl)
+        h += '<span class="btn focusable" onclick="window.__tvPlay(\'' + esc(ep.playbackUrl) + '\')">HLS</span>';
+      if (ep.embedUrl)
+        h += '<span class="btn focusable" onclick="window.__tvPlay(\'' + esc(ep.embedUrl) + '\',1)">Embed</span>';
+      h += "</div><pre id=\"vdbg\" style=\"background:#111;color:#9ae6b4;padding:12px;font-size:13px;white-space:pre-wrap;min-height:40px\"></pre>";
       app.innerHTML = h; collect();
+      if (base) window.__tvPlay(base + "play_" + MP4_RES[0] + ".mp4");
     }, showErr);
   }
 
