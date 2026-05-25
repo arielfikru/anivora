@@ -137,6 +137,23 @@
     }, showErr);
   }
 
+  /* Old TVs lack native HLS, so prefer Bunny's progressive MP4 renditions
+     (MP4 Fallback). Try resolutions high-to-low; step down on load error. */
+  var MP4_RES = ["720p", "1080p", "480p", "360p", "240p"];
+  function mp4Base(playbackUrl) {
+    return playbackUrl ? playbackUrl.replace(/playlist\.m3u8.*$/, "") : "";
+  }
+  window.__tvVideoError = function (v) {
+    var i = parseInt(v.getAttribute("data-i"), 10) + 1;
+    var base = v.getAttribute("data-base");
+    if (i < MP4_RES.length) {
+      v.setAttribute("data-i", i);
+      v.src = base + "play_" + MP4_RES[i] + ".mp4";
+      v.load();
+      try { v.play(); } catch (e) {}
+    }
+  };
+
   function viewWatch(slug, animeSlug) {
     app.innerHTML = '<div class="center muted">Memuat…</div>';
     api("getEpisode", { slug: slug }, function (res) {
@@ -145,10 +162,13 @@
       var h = '<a class="btn focusable" href="' + back + '">‹ Kembali</a>' +
               '<a class="btn focusable" href="#/">Beranda</a>' +
               "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
-      if (ep.playbackUrl) {
-        h += '<video class="focusable" controls autoplay playsinline src="' +
-             esc(ep.playbackUrl) + '"></video>' +
-             '<div class="muted" style="margin-top:12px">Jika video tak diputar, TV mungkin tak mendukung HLS.</div>';
+      var base = mp4Base(ep.playbackUrl);
+      if (base) {
+        h += '<video class="focusable" controls autoplay playsinline ' +
+             'data-base="' + esc(base) + '" data-i="0" ' +
+             'onerror="window.__tvVideoError(this)" ' +
+             'src="' + esc(base) + "play_" + MP4_RES[0] + '.mp4"></video>' +
+             '<div class="muted" style="margin-top:12px">MP4 progressive (fallback HLS untuk TV lama).</div>';
       } else if (ep.embedUrl) {
         h += '<iframe src="' + esc(ep.embedUrl) + '" allowfullscreen ' +
              'style="width:100%;max-width:1280px;height:520px;border:0;background:#000"></iframe>';
