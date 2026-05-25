@@ -163,16 +163,20 @@
   };
 
   // Auto-advance: navigate to the next episode's watch hash. Set when the
-  // anime's ordered episode list is known (see findNext below).
+  // anime's ordered episode list is known (see findSiblings below).
   window.__tvGoNext = function () {
     if (window.__tvNextHash) location.hash = window.__tvNextHash;
   };
 
+  function watchHash(slug, animeSlug) {
+    return slug ? "#/watch/" + slug + (animeSlug ? "?a=" + animeSlug : "") : "";
+  }
+
   // Fetch the anime, flatten its seasons into one ordered episode list, and
-  // resolve the slug that follows `curSlug`. Old TVs lack Array.findIndex, so
+  // resolve the slugs surrounding `curSlug`. Old TVs lack Array.findIndex, so
   // walk the list by hand.
-  function findNext(animeSlug, curSlug, done) {
-    if (!animeSlug) { done(""); return; }
+  function findSiblings(animeSlug, curSlug, done) {
+    if (!animeSlug) { done({ prev: "", next: "" }); return; }
     api("getAnime", { slug: animeSlug }, function (res) {
       var seasons = res.seasons || [], flat = [];
       for (var s = 0; s < seasons.length; s++) {
@@ -181,12 +185,15 @@
       }
       for (var i = 0; i < flat.length; i++) {
         if (flat[i].slug === curSlug) {
-          done(i + 1 < flat.length ? flat[i + 1].slug : "");
+          done({
+            prev: i > 0 ? flat[i - 1].slug : "",
+            next: i + 1 < flat.length ? flat[i + 1].slug : "",
+          });
           return;
         }
       }
-      done("");
-    }, function () { done(""); });
+      done({ prev: "", next: "" });
+    }, function () { done({ prev: "", next: "" }); });
   }
 
   function viewWatch(slug, animeSlug) {
@@ -199,16 +206,22 @@
       var guid = ep.bunnyVideoId || "";
       var base = guid ? (ORIGIN + "/v/" + guid + "/") : "";
 
-      findNext(animeSlug, slug, function (nextSlug) {
-        window.__tvNextHash =
-          nextSlug ? "#/watch/" + nextSlug + (animeSlug ? "?a=" + animeSlug : "") : "";
+      findSiblings(animeSlug, slug, function (sib) {
+        var prevHash = watchHash(sib.prev, animeSlug);
+        window.__tvNextHash = watchHash(sib.next, animeSlug);
 
         var h = '<a class="btn focusable" href="' + back + '">‹ Kembali</a>' +
                 '<a class="btn focusable" href="#/">Beranda</a>';
+        h += "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
+        h += '<div id="vbox"></div>';
+        // Episode nav, directly under the player.
+        h += '<div style="margin:14px 0">';
+        if (prevHash)
+          h += '<a class="btn focusable" href="' + prevHash + '">‹ Episode Sebelumnya</a>';
         if (window.__tvNextHash)
           h += '<a class="btn focusable" href="' + window.__tvNextHash + '">Episode Berikutnya ›</a>';
-        h += "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
-        h += '<div id="vbox"></div><div style="margin:14px 0">';
+        h += "</div>";
+        h += '<div style="margin:14px 0">';
         if (base) {
           h += '<span class="muted" style="margin-right:8px">Kualitas:</span>';
           for (var i = 0; i < MP4_RES.length; i++) {
