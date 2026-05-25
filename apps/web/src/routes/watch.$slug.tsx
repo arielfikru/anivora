@@ -1,7 +1,13 @@
 import type { Episode, PublicEpisode } from "@anivora/api"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
-import { ArrowLeft, ChevronLeft, ChevronRight, Film } from "lucide-react"
+import {
+	ArrowLeft,
+	ChevronLeft,
+	ChevronRight,
+	Film,
+	Maximize,
+} from "lucide-react"
 import { Suspense, useCallback, useEffect, useRef } from "react"
 import { z } from "zod"
 import { CoverImage } from "#/components/catalog/cover-image.tsx"
@@ -48,6 +54,7 @@ function WatchContent({
 	const episode = data.episode
 	const nav = useEpisodeNav(animeSlug, slug)
 	const navigate = useNavigate()
+	const playerRef = useRef<HTMLDivElement>(null)
 
 	const goNext = useCallback(() => {
 		if (!nav.next) return
@@ -58,6 +65,10 @@ function WatchContent({
 		})
 	}, [nav.next, animeSlug, navigate])
 
+	const goFullscreen = useCallback(() => {
+		playerRef.current?.requestFullscreen?.().catch(() => {})
+	}, [])
+
 	return (
 		<div className="flex min-h-screen flex-col">
 			<WatchHeader
@@ -66,9 +77,14 @@ function WatchContent({
 				title={nav.animeTitle}
 			/>
 			<div className="flex flex-1 items-center justify-center px-4 py-2 lg:px-10">
-				<Player episode={episode} onEnded={goNext} />
+				<Player episode={episode} onEnded={goNext} containerRef={playerRef} />
 			</div>
-			<WatchFooter animeSlug={animeSlug} prev={nav.prev} next={nav.next} />
+			<WatchFooter
+				animeSlug={animeSlug}
+				prev={nav.prev}
+				next={nav.next}
+				onFullscreen={goFullscreen}
+			/>
 		</div>
 	)
 }
@@ -173,16 +189,21 @@ function withAutoplay(src: string): string {
 function Player({
 	episode,
 	onEnded,
+	containerRef,
 }: {
 	episode: Episode
 	onEnded: () => void
+	containerRef: React.RefObject<HTMLDivElement | null>
 }) {
 	const iframeRef = useRef<HTMLIFrameElement>(null)
 	useBunnyEnded(iframeRef, onEnded)
 	const src = episode.embedUrl ?? episode.playbackUrl
 	if (src) {
 		return (
-			<div className="aspect-video w-full max-w-6xl overflow-hidden rounded-xl bg-black">
+			<div
+				ref={containerRef}
+				className="aspect-video w-full max-w-6xl overflow-hidden rounded-xl bg-black"
+			>
 				<iframe
 					ref={iframeRef}
 					src={withAutoplay(src)}
@@ -195,7 +216,10 @@ function Player({
 		)
 	}
 	return (
-		<div className="relative aspect-video w-full max-w-6xl overflow-hidden rounded-xl bg-anv-surface">
+		<div
+			ref={containerRef}
+			className="relative aspect-video w-full max-w-6xl overflow-hidden rounded-xl bg-anv-surface"
+		>
 			<CoverImage
 				src={episode.thumbnailUrl}
 				title={episode.title ?? episode.episodeCode}
@@ -213,16 +237,33 @@ function WatchFooter({
 	animeSlug,
 	prev,
 	next,
+	onFullscreen,
 }: {
 	animeSlug?: string
 	prev: PublicEpisode | null
 	next: PublicEpisode | null
+	onFullscreen: () => void
 }) {
 	return (
 		<footer className="flex items-center justify-between gap-3 p-4 lg:px-10">
 			<NavLink episode={prev} animeSlug={animeSlug} dir="prev" />
+			<FullscreenButton onClick={onFullscreen} />
 			<NavLink episode={next} animeSlug={animeSlug} dir="next" />
 		</footer>
+	)
+}
+
+function FullscreenButton({ onClick }: { onClick: () => void }) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			data-focusable
+			className="inline-flex h-14 items-center gap-3 rounded-xl bg-anv-red px-8 text-lg font-bold text-white outline-none transition hover:bg-anv-red-hover focus-visible:scale-105 focus-visible:ring-2 focus-visible:ring-white"
+		>
+			<Maximize className="size-6" />
+			Layar Penuh
+		</button>
 	)
 }
 
