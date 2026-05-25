@@ -59,10 +59,13 @@ services:
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
+    volumes:
+      - uploads_data:/app/uploads
     user: "1000:1000"
     environment:
       NODE_ENV: production
       PORT: 3000
+      UPLOAD_DIR: /app/uploads
       DATABASE_URL: postgresql://anivora:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/anivora
       REDIS_URL: redis://redis:6379
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
@@ -160,3 +163,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:

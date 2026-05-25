@@ -23,3 +23,14 @@ mcp-todos.json
 
 # harness
 .claude/
+
+# local uploaded assets
+apps/api/uploads
+uploads
+
+# bulk-upload working material (not tracked)
+uploader/
+*.rar
+*.mp4
+*.mkv
+*.crdownload

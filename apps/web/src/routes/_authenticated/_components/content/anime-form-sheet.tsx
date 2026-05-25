@@ -20,7 +20,13 @@ import {
 	emptyAnimeForm,
 	toAnimePayload,
 } from "./anime-form-helpers"
-import { AreaField, SelectField, SwitchField, TextField } from "./form-fields"
+import {
+	AreaField,
+	ImageField,
+	SelectField,
+	SwitchField,
+	TextField,
+} from "./form-fields"
 import { CATALOG_STATUSES, CONTENT_RATINGS } from "./shared"
 
 interface Props {
@@ -132,11 +138,17 @@ export function AnimeFormSheet({ mode, anime, open, onOpenChange }: Props) {
 					<TextField form={form} name="releaseYear" label="Release year" />
 					<TextField form={form} name="studioName" label="Studio" />
 					<TextField form={form} name="creatorName" label="Creator" />
-					<TextField form={form} name="coverImageUrl" label="Cover image URL" />
-					<TextField
+					<ImageField
+						form={form}
+						name="coverImageUrl"
+						label="Cover image"
+						hint="Poster 2:3 — rekomendasi 600×900px (JPG/PNG/WebP, maks 10MB)"
+					/>
+					<ImageField
 						form={form}
 						name="bannerImageUrl"
-						label="Banner image URL"
+						label="Banner image"
+						hint="Banner 16:9 — rekomendasi 1920×1080px (JPG/PNG/WebP, maks 10MB)"
 					/>
 					<TextField form={form} name="rightsOwnerName" label="Rights owner" />
 					<TextField form={form} name="licenseType" label="License type" />
