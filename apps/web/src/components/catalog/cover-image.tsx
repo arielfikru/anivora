@@ -5,17 +5,25 @@ interface ICoverImageProps {
 	src: string | null
 	title: string
 	className?: string
+	/** Default art used when `src` is empty (e.g. "/cover.png", "/banner.png"). */
+	fallback?: string
 }
 
 /**
- * Image with a tasteful gradient + initials fallback when `src` is null.
- * Used by cards, hero and detail art.
+ * Image with a default placeholder, then a gradient + initials fallback when
+ * neither `src` nor `fallback` is set. Used by cards, hero and detail art.
  */
-export function CoverImage({ src, title, className }: ICoverImageProps) {
-	if (src) {
+export function CoverImage({
+	src,
+	title,
+	className,
+	fallback,
+}: ICoverImageProps) {
+	const resolved = src || fallback
+	if (resolved) {
 		return (
 			<img
-				src={src}
+				src={resolved}
 				alt={title}
 				loading="lazy"
 				className={cn("h-full w-full object-cover", className)}
