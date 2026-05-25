@@ -1,8 +1,8 @@
 import type { Episode, PublicEpisode } from "@anivora/api"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 import { ArrowLeft, ChevronLeft, ChevronRight, Film } from "lucide-react"
-import { Suspense } from "react"
+import { Suspense, useCallback, useEffect, useRef } from "react"
 import { z } from "zod"
 import { CoverImage } from "#/components/catalog/cover-image.tsx"
 import { ErrorMessage } from "#/components/catalog/feedback.tsx"
@@ -47,6 +47,16 @@ function WatchContent({
 	)
 	const episode = data.episode
 	const nav = useEpisodeNav(animeSlug, slug)
+	const navigate = useNavigate()
+
+	const goNext = useCallback(() => {
+		if (!nav.next) return
+		navigate({
+			to: "/watch/$slug",
+			params: { slug: nav.next.slug },
+			search: { anime: animeSlug },
+		})
+	}, [nav.next, animeSlug, navigate])
 
 	return (
 		<div className="flex min-h-screen flex-col">
@@ -56,7 +66,7 @@ function WatchContent({
 				title={nav.animeTitle}
 			/>
 			<div className="flex flex-1 items-center justify-center px-4 py-2 lg:px-10">
-				<Player episode={episode} />
+				<Player episode={episode} onEnded={goNext} />
 			</div>
 			<WatchFooter animeSlug={animeSlug} prev={nav.prev} next={nav.next} />
 		</div>
@@ -119,13 +129,63 @@ function BackButton({ animeSlug }: { animeSlug?: string }) {
 	)
 }
 
-function Player({ episode }: { episode: Episode }) {
+/**
+ * Bunny's embed implements the player.js protocol over postMessage. Register an
+ * `ended` listener on load; when the iframe reports playback finished, advance.
+ */
+function useBunnyEnded(
+	ref: React.RefObject<HTMLIFrameElement | null>,
+	onEnded: () => void,
+) {
+	useEffect(() => {
+		const win = ref.current?.contentWindow
+		const register = () =>
+			win?.postMessage(
+				JSON.stringify({
+					context: "player.js",
+					version: "1.0",
+					method: "addEventListener",
+					value: "ended",
+					listener: "anv-ended",
+				}),
+				"*",
+			)
+		const onMessage = (e: MessageEvent) => {
+			if (typeof e.data !== "string") return
+			try {
+				const msg = JSON.parse(e.data) as { context?: string; event?: string }
+				if (msg.context === "player.js" && msg.event === "ended") onEnded()
+			} catch {}
+		}
+		window.addEventListener("message", onMessage)
+		const timer = setTimeout(register, 1000)
+		return () => {
+			window.removeEventListener("message", onMessage)
+			clearTimeout(timer)
+		}
+	}, [ref, onEnded])
+}
+
+function withAutoplay(src: string): string {
+	return src.includes("?") ? `${src}&autoplay=true` : `${src}?autoplay=true`
+}
+
+function Player({
+	episode,
+	onEnded,
+}: {
+	episode: Episode
+	onEnded: () => void
+}) {
+	const iframeRef = useRef<HTMLIFrameElement>(null)
+	useBunnyEnded(iframeRef, onEnded)
 	const src = episode.embedUrl ?? episode.playbackUrl
 	if (src) {
 		return (
 			<div className="aspect-video w-full max-w-6xl overflow-hidden rounded-xl bg-black">
 				<iframe
-					src={src}
+					ref={iframeRef}
+					src={withAutoplay(src)}
 					title={episode.title ?? episode.episodeCode}
 					allow="autoplay; fullscreen; picture-in-picture"
 					allowFullScreen

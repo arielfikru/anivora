@@ -6,6 +6,12 @@ import { toast } from "sonner"
 import { Button } from "#/components/ui/button"
 import { Label } from "#/components/ui/label"
 import {
+	Sheet,
+	SheetContent,
+	SheetHeader,
+	SheetTitle,
+} from "#/components/ui/sheet"
+import {
 	Table,
 	TableBody,
 	TableCell,
@@ -17,6 +23,7 @@ import { extractErrorMessage } from "#/libs/errors/extract-message"
 import { orpc } from "#/libs/orpc/client"
 import { ConfirmDelete } from "./confirm-delete"
 import { EpisodeFormSheet } from "./episode-form-sheet"
+import { EpisodeUploadCard } from "./episode-upload-card"
 import type { EpisodeRow } from "./episode-types"
 import { AnimePicker, StatusBadge } from "./shared"
 import { SeasonPicker } from "./season-picker"
@@ -25,6 +32,7 @@ type SheetState =
 	| { kind: "none" }
 	| { kind: "create" }
 	| { kind: "edit"; episode: EpisodeRow }
+	| { kind: "upload"; episode: EpisodeRow }
 	| { kind: "delete"; episode: EpisodeRow }
 
 export function EpisodeManager() {
@@ -106,6 +114,15 @@ export function EpisodeManager() {
 										</TableCell>
 										<TableCell className="flex justify-end gap-2">
 											<Button
+												variant="default"
+												size="sm"
+												onClick={() =>
+													setSheet({ kind: "upload", episode: ep })
+												}
+											>
+												Video
+											</Button>
+											<Button
 												variant="outline"
 												size="sm"
 												onClick={() => setSheet({ kind: "edit", episode: ep })}
@@ -152,6 +169,20 @@ export function EpisodeManager() {
 					open
 					onOpenChange={() => setSheet({ kind: "none" })}
 				/>
+			)}
+			{sheet.kind === "upload" && (
+				<Sheet open onOpenChange={() => setSheet({ kind: "none" })}>
+					<SheetContent className="w-full overflow-y-auto sm:max-w-md">
+						<SheetHeader>
+							<SheetTitle>
+								Video — {sheet.episode.episodeCode} {sheet.episode.title ?? ""}
+							</SheetTitle>
+						</SheetHeader>
+						<div className="px-4 pb-4">
+							<EpisodeUploadCard episode={sheet.episode} seasonId={seasonId} />
+						</div>
+					</SheetContent>
+				</Sheet>
 			)}
 			{sheet.kind === "delete" && (
 				<ConfirmDelete
