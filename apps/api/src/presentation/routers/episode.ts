@@ -3,6 +3,7 @@ import { adminProcedure, toAuthedContext } from "../orpc/middleware.ts"
 import {
 	attachBunnyVideoSchema,
 	createEpisodeSchema,
+	createEpisodeUploadSchema,
 	deleteEpisodeSchema,
 	listEpisodesSchema,
 	syncEpisodeStatusSchema,
@@ -33,6 +34,12 @@ export function buildEpisodeRouter(useCases: UseCases["episode"]) {
 			.input(deleteEpisodeSchema)
 			.handler(({ input, context }) =>
 				useCases.delete(input, toAuthedContext(context)),
+			),
+
+		createEpisodeUpload: adminProcedure
+			.input(createEpisodeUploadSchema)
+			.handler(({ input, context }) =>
+				useCases.createUpload(input, toAuthedContext(context)),
 			),
 
 		attachBunnyVideo: adminProcedure
