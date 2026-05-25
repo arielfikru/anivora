@@ -131,6 +131,7 @@ const seasonFields = {
 	description: z.string().max(5000).nullish(),
 	releaseYear: z.number().int().min(1900).max(2200).nullish(),
 	status: catalogStatus.optional(),
+	autoPublish: z.boolean().optional(),
 }
 
 export const createSeasonSchema = z.object({

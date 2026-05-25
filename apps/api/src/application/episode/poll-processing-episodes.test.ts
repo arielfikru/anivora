@@ -25,6 +25,10 @@ const makeEpisode = (over: Partial<Episode>): Episode => ({
 	...over,
 })
 
+const seasonRepoWith = (autoPublish: boolean) => ({
+	findById: vi.fn().mockResolvedValue({ id: "se", autoPublish }),
+})
+
 describe("makePollProcessingEpisodes", () => {
 	it("syncs changed episodes and counts updates", async () => {
 		const episodes = [
@@ -40,6 +44,7 @@ describe("makePollProcessingEpisodes", () => {
 		}
 		const poll = makePollProcessingEpisodes({
 			episodeRepo,
+			seasonRepo: seasonRepoWith(false),
 			bunny,
 		} as never)
 
@@ -47,7 +52,30 @@ describe("makePollProcessingEpisodes", () => {
 
 		expect(result).toEqual({ updated: 1 })
 		expect(episodeRepo.setStatus).toHaveBeenCalledTimes(1)
-		expect(episodeRepo.setStatus).toHaveBeenCalledWith("a", "ready")
+		expect(episodeRepo.setStatus).toHaveBeenCalledWith("a", "ready", undefined)
+	})
+
+	it("auto-publishes ready episodes when the season opts in", async () => {
+		const episodeRepo = {
+			listByStatus: vi
+				.fn()
+				.mockResolvedValue([makeEpisode({ id: "a", status: "processing" })]),
+			setStatus: vi.fn(),
+		}
+		const bunny = { getVideoStatus: vi.fn(async () => 4) }
+		const poll = makePollProcessingEpisodes({
+			episodeRepo,
+			seasonRepo: seasonRepoWith(true),
+			bunny,
+		} as never)
+
+		const result = await poll()
+
+		expect(result).toEqual({ updated: 1 })
+		const [id, status, publishedAt] = episodeRepo.setStatus.mock.calls[0]
+		expect(id).toBe("a")
+		expect(status).toBe("published")
+		expect(publishedAt).toBeInstanceOf(Date)
 	})
 
 	it("skips episodes without a bunny video", async () => {
@@ -58,7 +86,11 @@ describe("makePollProcessingEpisodes", () => {
 			setStatus: vi.fn(),
 		}
 		const bunny = { getVideoStatus: vi.fn() }
-		const poll = makePollProcessingEpisodes({ episodeRepo, bunny } as never)
+		const poll = makePollProcessingEpisodes({
+			episodeRepo,
+			seasonRepo: seasonRepoWith(false),
+			bunny,
+		} as never)
 
 		const result = await poll()
 

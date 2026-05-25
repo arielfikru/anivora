@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike } from "drizzle-orm"
+import { and, desc, eq, ilike, sql } from "drizzle-orm"
 
 import type { AnimeListFilters, AnimeListItem } from "#/domain/catalog/anime.ts"
 import type { AnimeRepository } from "#/domain/catalog/anime-repository.ts"
@@ -6,12 +6,31 @@ import type { Db } from "../client.ts"
 import * as schema from "../schema.ts"
 import { toAnime } from "./anime-mapper.ts"
 
+// Thumbnail of the lowest-numbered episode that has one — used as a fallback
+// cover/banner when the anime has no artwork of its own.
+const firstEpisodeThumb = sql<string | null>`(
+	select ${schema.episode.thumbnailUrl}
+	from ${schema.episode}
+	where ${schema.episode.animeId} = ${schema.anime.id}
+		and ${schema.episode.thumbnailUrl} is not null
+	order by ${schema.episode.episodeNumber} asc
+	limit 1
+)`
+
 const listColumns = {
 	id: schema.anime.id,
 	title: schema.anime.title,
 	slug: schema.anime.slug,
-	coverImageUrl: schema.anime.coverImageUrl,
-	bannerImageUrl: schema.anime.bannerImageUrl,
+	coverImageUrl: sql<
+		string | null
+	>`coalesce(${schema.anime.coverImageUrl}, ${firstEpisodeThumb})`.as(
+		"coverImageUrl",
+	),
+	bannerImageUrl: sql<
+		string | null
+	>`coalesce(${schema.anime.bannerImageUrl}, ${firstEpisodeThumb})`.as(
+		"bannerImageUrl",
+	),
 	status: schema.anime.status,
 	releaseYear: schema.anime.releaseYear,
 	contentRating: schema.anime.contentRating,

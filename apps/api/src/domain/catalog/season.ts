@@ -8,6 +8,7 @@ export interface Season {
 	description: string | null
 	releaseYear: number | null
 	status: CatalogStatus
+	autoPublish: boolean
 	createdAt: Date
 	updatedAt: Date
 }
@@ -19,6 +20,7 @@ export interface NewSeason {
 	description?: string | null
 	releaseYear?: number | null
 	status?: CatalogStatus
+	autoPublish?: boolean
 }
 
 export type SeasonUpdate = Partial<Omit<NewSeason, "animeId">>
