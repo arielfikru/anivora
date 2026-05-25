@@ -9,6 +9,9 @@ import tsconfigPaths from "vite-tsconfig-paths"
 const API_URL = process.env.VITE_API_URL ?? "http://localhost:3001"
 
 export default defineConfig({
+	// Modern SPA is mounted under /app — the bare root serves the static
+	// device chooser (choose.html). All built asset URLs become /app/assets/*.
+	base: "/app/",
 	plugins: [
 		paraglideVitePlugin({
 			project: "./src/libs/paraglide/project.inlang",

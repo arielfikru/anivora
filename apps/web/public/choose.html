@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Anivora — Pilih Versi</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0c; color: #f4f4f5;
+    font-family: Arial, Helvetica, sans-serif; }
+  a { color: inherit; text-decoration: none; }
+  #wrap { min-height: 100%; display: table; width: 100%; }
+  #inner { display: table-cell; vertical-align: middle; text-align: center; padding: 32px; }
+  .logo { display: inline-block; width: 64px; height: 64px; line-height: 64px; border-radius: 16px;
+    background: #e23636; color: #fff; font-size: 34px; font-weight: bold; margin-bottom: 18px; }
+  h1 { font-size: 30px; margin: 0 0 6px; }
+  .sub { color: #a1a1aa; font-size: 16px; margin: 0 0 36px; }
+  .cards { font-size: 0; }
+  .card { display: inline-block; vertical-align: top; width: 280px; margin: 0 14px 16px;
+    background: #18181b; border: 3px solid #27272a; border-radius: 14px; padding: 30px 22px;
+    cursor: pointer; outline: none; text-align: center; }
+  .card .ic { font-size: 46px; line-height: 1; margin-bottom: 14px; }
+  .card .ti { font-size: 22px; font-weight: bold; margin-bottom: 8px; }
+  .card .ds { font-size: 14px; color: #a1a1aa; line-height: 1.4; }
+  .card.focused, .card:focus { border-color: #e23636; background: #27272a; }
+  .hint { margin-top: 28px; color: #71717a; font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="wrap"><div id="inner">
+  <div class="logo">A</div>
+  <h1>Anivora</h1>
+  <p class="sub">Pilih versi yang sesuai dengan perangkatmu.</p>
+  <div class="cards">
+    <a class="card focusable" id="cardModern" href="#" data-mode="modern" data-go="/app/">
+      <div class="ic">&#128250;</div>
+      <div class="ti">Versi Modern</div>
+      <div class="ds">Tampilan penuh untuk HP, tablet &amp; PC modern.</div>
+    </a>
+    <a class="card focusable" id="cardLegacy" href="#" data-mode="legacy" data-go="/tv.html">
+      <div class="ic">&#128225;</div>
+      <div class="ti">Versi TV / Jadul</div>
+      <div class="ds">Ringan untuk smart-TV &amp; browser lama. Navigasi remote.</div>
+    </a>
+  </div>
+  <p class="hint">Pilihanmu akan diingat. Buka <b>/?pick=1</b> untuk ganti lagi.</p>
+</div></div>
+<script>
+/* Anivora chooser — ES5 only, must run on ancient smart-TV browsers. */
+(function () {
+  var KEY = "anivora.mode";
+  var GO = { modern: "/app/", legacy: "/tv.html" };
+
+  function getStored() {
+    try { return window.localStorage.getItem(KEY); } catch (e) { return null; }
+  }
+  function setStored(v) {
+    try { window.localStorage.setItem(KEY, v); } catch (e) {}
+  }
+  function forcePick() {
+    return /[?&]pick=/.test(location.search) || location.hash === "#pick";
+  }
+
+  /* Auto-redirect to last choice unless the user asked to pick again. */
+  if (!forcePick()) {
+    var prev = getStored();
+    if (prev && GO[prev]) { location.replace(GO[prev]); return; }
+  }
+
+  var cards = document.getElementsByClassName("focusable");
+  var idx = 0;
+  function focusAt(i) {
+    for (var j = 0; j < cards.length; j++) {
+      cards[j].className = cards[j].className.replace(/ ?focused/, "");
+    }
+    idx = (i + cards.length) % cards.length;
+    cards[idx].className += " focused";
+    if (cards[idx].focus) cards[idx].focus();
+  }
+  function choose(el) {
+    var mode = el.getAttribute("data-mode");
+    var go = el.getAttribute("data-go");
+    setStored(mode);
+    location.href = go;
+  }
+
+  for (var k = 0; k < cards.length; k++) {
+    (function (el) {
+      el.onclick = function (e) {
+        if (e && e.preventDefault) e.preventDefault();
+        choose(el);
+        return false;
+      };
+    })(cards[k]);
+  }
+
+  document.onkeydown = function (e) {
+    var code = e.keyCode || e.which;
+    if (code === 37 || code === 38) { focusAt(idx - 1); }       /* left / up   */
+    else if (code === 39 || code === 40) { focusAt(idx + 1); }  /* right/ down */
+    else if (code === 13) { choose(cards[idx]); }               /* OK / Enter  */
+    else { return; }
+    if (e.preventDefault) e.preventDefault();
+  };
+
+  focusAt(0);
+})();
+</script>
+</body>
+</html>

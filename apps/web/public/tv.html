@@ -103,7 +103,9 @@
   function viewHome() {
     app.innerHTML = '<h1>Anivora</h1><div class="center muted">Memuat…</div>';
     api("listAnime", { limit: 60, offset: 0 }, function (res) {
-      var a = res.anime || [], h = '<h1>Anivora</h1><div class="grid">';
+      var a = res.anime || [], h = '<h1>Anivora</h1>' +
+        '<div class="bar"><a class="btn focusable" href="/?pick=1">Ganti Mode</a></div>' +
+        '<div class="grid">';
       if (!a.length) h += '<div class="muted">Belum ada anime.</div>';
       for (var i = 0; i < a.length; i++) {
         h += '<a class="card focusable" href="#/anime/' + esc(a[i].slug) + '">' +

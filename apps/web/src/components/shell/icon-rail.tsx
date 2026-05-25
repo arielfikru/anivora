@@ -7,6 +7,7 @@ import {
 	Play,
 	Search,
 	Settings,
+	Tv,
 } from "lucide-react"
 import { cn } from "#/libs/clsx"
 import { RailClock } from "./rail-clock.tsx"
@@ -46,7 +47,20 @@ export function IconRail() {
 				))}
 			</ul>
 
-			<RailClock />
+			<div className="flex flex-col items-center gap-3">
+				<a
+					href="/?pick=1"
+					data-focusable
+					aria-label="Ganti mode tampilan"
+					className="group relative flex size-12 items-center justify-center rounded-xl text-anv-muted outline-none transition hover:bg-anv-surface-2 hover:text-anv-text focus-visible:bg-anv-surface-2 focus-visible:text-anv-text"
+				>
+					<Tv className="size-6" />
+					<span className="pointer-events-none absolute left-[58px] z-40 whitespace-nowrap rounded-md bg-anv-surface-2 px-2 py-1 text-xs font-semibold text-anv-text opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100">
+						Ganti mode
+					</span>
+				</a>
+				<RailClock />
+			</div>
 		</nav>
 	)
 }
