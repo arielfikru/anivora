@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Anivora TV</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0c; color: #f4f4f5;
+    font-family: Arial, Helvetica, sans-serif; }
+  a { color: inherit; text-decoration: none; }
+  #app { padding: 32px; }
+  h1 { font-size: 28px; margin: 0 0 20px; }
+  h2 { font-size: 20px; margin: 24px 0 12px; color: #d4d4d8; }
+  .bar { display: block; margin-bottom: 16px; }
+  .muted { color: #a1a1aa; font-size: 14px; }
+  .grid { font-size: 0; }
+  .card { display: inline-block; width: 200px; vertical-align: top; margin: 0 16px 24px 0;
+    background: #18181b; border: 3px solid transparent; border-radius: 8px; overflow: hidden;
+    cursor: pointer; outline: none; }
+  .card img { width: 100%; height: 280px; object-fit: cover; display: block; background: #27272a; }
+  .card .t { font-size: 14px; padding: 8px 10px; line-height: 1.3; height: 56px; overflow: hidden; }
+  .row { display: block; background: #18181b; border: 3px solid transparent; border-radius: 8px;
+    padding: 14px 18px; margin-bottom: 10px; cursor: pointer; outline: none; font-size: 18px; }
+  .btn { display: inline-block; background: #18181b; border: 3px solid transparent; border-radius: 8px;
+    padding: 12px 24px; margin: 0 12px 12px 0; cursor: pointer; outline: none; font-size: 18px; }
+  .btn.red { background: #e23636; }
+  .focusable:focus, .focused { border-color: #e23636 !important; background: #27272a; }
+  .card.focused img { opacity: .85; }
+  video { width: 100%; max-width: 1280px; height: auto; background: #000; display: block; margin: 0 auto; }
+  .center { text-align: center; padding-top: 60px; }
+  .err { color: #f87171; padding: 16px; white-space: pre-wrap; font-family: monospace; }
+</style>
+</head>
+<body>
+<div id="app"><div class="center muted">Memuat…</div></div>
+<script>
+/* Anivora TV — ultra-light client for ancient smart-TV browsers (no ES6,
+   no Proxy). Talks to the REST/OpenAPI endpoints with XHR; navigates with
+   the remote's arrow keys + OK + Back. Kept to ES5 on purpose. */
+(function () {
+  "use strict";
+  var ORIGIN = location.protocol + "//" + location.host;
+  var app = document.getElementById("app");
+
+  function api(path, body, ok, fail) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", ORIGIN + "/api/catalog/" + path);
+    xhr.setRequestHeader("content-type", "application/json");
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try { ok(JSON.parse(xhr.responseText)); }
+        catch (e) { fail("Parse error: " + e); }
+      } else { fail("HTTP " + xhr.status); }
+    };
+    xhr.onerror = function () { fail("Network error"); };
+    xhr.send(JSON.stringify(body || {}));
+  }
+
+  function img(url) {
+    if (!url) return ORIGIN + "/cover.png";
+    return url.charAt(0) === "/" ? ORIGIN + url : url;
+  }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function showErr(msg) { app.innerHTML = '<div class="err">' + esc(msg) + "</div>"; }
+
+  /* ---- focus / remote navigation ---- */
+  var items = [], cur = 0;
+  function collect() {
+    items = [];
+    var els = app.querySelectorAll(".focusable");
+    for (var i = 0; i < els.length; i++) items.push(els[i]);
+    cur = 0; highlight();
+  }
+  function highlight() {
+    for (var i = 0; i < items.length; i++) {
+      if (i === cur) { items[i].className += " focused"; }
+      else { items[i].className = items[i].className.replace(/ ?focused/g, ""); }
+    }
+    if (items[cur] && items[cur].scrollIntoView) items[cur].scrollIntoView(false);
+  }
+  function move(d) {
+    if (!items.length) return;
+    cur += d; if (cur < 0) cur = 0; if (cur >= items.length) cur = items.length - 1;
+    highlight();
+  }
+  document.addEventListener("keydown", function (e) {
+    var k = e.keyCode;
+    if (k === 37) { move(-1); e.preventDefault(); }          // left
+    else if (k === 39) { move(1); e.preventDefault(); }       // right
+    else if (k === 38) { move(-3); e.preventDefault(); }      // up (grid step)
+    else if (k === 40) { move(3); e.preventDefault(); }       // down
+    else if (k === 13) { if (items[cur]) items[cur].click(); e.preventDefault(); } // OK
+    else if (k === 8 || k === 461 || k === 10009) {           // back (browser/webOS/Tizen)
+      if (location.hash && location.hash !== "#/") { history.back(); e.preventDefault(); }
+    }
+  });
+
+  /* ---- views ---- */
+  function viewHome() {
+    app.innerHTML = '<h1>Anivora</h1><div class="center muted">Memuat…</div>';
+    api("listAnime", { limit: 60, offset: 0 }, function (res) {
+      var a = res.anime || [], h = '<h1>Anivora</h1><div class="grid">';
+      if (!a.length) h += '<div class="muted">Belum ada anime.</div>';
+      for (var i = 0; i < a.length; i++) {
+        h += '<a class="card focusable" href="#/anime/' + esc(a[i].slug) + '">' +
+             '<img src="' + img(a[i].coverImageUrl) + '" alt="" />' +
+             '<div class="t">' + esc(a[i].title) + "</div></a>";
+      }
+      app.innerHTML = h + "</div>";
+      collect();
+    }, showErr);
+  }
+
+  function viewAnime(slug) {
+    app.innerHTML = '<div class="center muted">Memuat…</div>';
+    api("getAnime", { slug: slug }, function (res) {
+      var an = res.anime, seasons = res.seasons || [];
+      var h = '<a class="btn focusable" href="#/">‹ Beranda</a>' +
+              "<h1>" + esc(an.title) + "</h1>";
+      if (an.description) h += '<div class="muted" style="max-width:900px;margin-bottom:8px">' +
+        esc(String(an.description).substring(0, 240)) + "</div>";
+      for (var s = 0; s < seasons.length; s++) {
+        var eps = seasons[s].episodes || [];
+        h += "<h2>" + esc(seasons[s].title || ("Season " + seasons[s].seasonNumber)) + "</h2>";
+        for (var e = 0; e < eps.length; e++) {
+          var ep = eps[e];
+          h += '<a class="row focusable" href="#/watch/' + esc(ep.slug) + "?a=" + esc(slug) + '">' +
+               "<b>" + esc(ep.episodeCode) + "</b>" +
+               (ep.title ? " — " + esc(ep.title) : "") + "</a>";
+        }
+      }
+      app.innerHTML = h; collect();
+    }, showErr);
+  }
+
+  function viewWatch(slug, animeSlug) {
+    app.innerHTML = '<div class="center muted">Memuat…</div>';
+    api("getEpisode", { slug: slug }, function (res) {
+      var ep = res.episode || {};
+      var back = animeSlug ? "#/anime/" + animeSlug : "#/";
+      var h = '<a class="btn focusable" href="' + back + '">‹ Kembali</a>' +
+              '<a class="btn focusable" href="#/">Beranda</a>' +
+              "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
+      if (ep.playbackUrl) {
+        h += '<video class="focusable" controls autoplay playsinline src="' +
+             esc(ep.playbackUrl) + '"></video>' +
+             '<div class="muted" style="margin-top:12px">Jika video tak diputar, TV mungkin tak mendukung HLS.</div>';
+      } else if (ep.embedUrl) {
+        h += '<iframe src="' + esc(ep.embedUrl) + '" allowfullscreen ' +
+             'style="width:100%;max-width:1280px;height:520px;border:0;background:#000"></iframe>';
+      } else {
+        h += '<div class="muted">Video belum tersedia.</div>';
+      }
+      app.innerHTML = h; collect();
+    }, showErr);
+  }
+
+  /* ---- router ---- */
+  function route() {
+    var hash = location.hash || "#/";
+    var m;
+    if ((m = hash.match(/^#\/anime\/(.+)$/))) { viewAnime(decodeURIComponent(m[1])); }
+    else if ((m = hash.match(/^#\/watch\/([^?]+)(?:\?a=(.+))?$/))) {
+      viewWatch(decodeURIComponent(m[1]), m[2] ? decodeURIComponent(m[2]) : "");
+    } else { viewHome(); }
+    window.scrollTo(0, 0);
+  }
+  window.onhashchange = route;
+  route();
+})();
+</script>
+</body>
+</html>
