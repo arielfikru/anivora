@@ -114,27 +114,27 @@ function DetailTabs({
 	animeSlug: string
 }) {
 	return (
-		<Tabs defaultValue="about" className="w-full">
+		<Tabs defaultValue="episodes" className="w-full">
 			<TabsList variant="line">
-				<TabsTrigger value="about" data-focusable>
-					Tentang
-				</TabsTrigger>
 				<TabsTrigger value="episodes" data-focusable>
 					Episode
+				</TabsTrigger>
+				<TabsTrigger value="about" data-focusable>
+					Tentang
 				</TabsTrigger>
 				<TabsTrigger value="details" data-focusable>
 					Detail
 				</TabsTrigger>
 			</TabsList>
 
+			<TabsContent value="episodes" className="pt-4">
+				<SeasonEpisodes seasons={seasons} animeSlug={animeSlug} />
+			</TabsContent>
+
 			<TabsContent value="about" className="max-w-3xl pt-4">
 				<p className="leading-relaxed text-anv-text/85">
 					{anime.description ?? "Belum ada sinopsis."}
 				</p>
-			</TabsContent>
-
-			<TabsContent value="episodes" className="pt-4">
-				<SeasonEpisodes seasons={seasons} animeSlug={animeSlug} />
 			</TabsContent>
 
 			<TabsContent value="details" className="max-w-3xl pt-4">
