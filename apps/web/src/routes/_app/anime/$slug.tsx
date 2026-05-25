@@ -12,6 +12,10 @@ import { EpisodeList } from "./_components/episode-list.tsx"
 
 type TSeasonWithEpisodes = Season & { episodes: PublicEpisode[] }
 
+function truncate(text: string, max: number): string {
+	return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text
+}
+
 export const Route = createFileRoute("/_app/anime/$slug")({
 	component: DetailPage,
 	errorComponent: () => <ErrorMessage message="Anime tidak ditemukan." />,
@@ -77,6 +81,11 @@ function DetailHero({
 					</h1>
 					{meta ? (
 						<p className="text-sm text-anv-muted lg:text-base">{meta}</p>
+					) : null}
+					{anime.description ? (
+						<p className="text-sm leading-relaxed text-anv-text/80 lg:text-base">
+							{truncate(anime.description, 100)}
+						</p>
 					) : null}
 				</div>
 				<div className="flex flex-wrap gap-3">
