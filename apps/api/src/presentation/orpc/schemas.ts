@@ -58,6 +58,16 @@ export const listActivityLogsSchema = z.object({
 })
 
 const id = z.string().min(1, "ID is required")
+
+// Accepts an absolute URL (external host) or a server-relative upload path
+// like "/uploads/<uuid>.jpg" produced by the local image upload endpoint.
+const imageUrl = z
+	.string()
+	.max(2048)
+	.refine(
+		(v) => v.startsWith("/") || URL.canParse(v),
+		"Must be a URL or an upload path",
+	)
 const catalogStatus = z.enum(["draft", "published", "hidden", "archived"])
 const contentRating = z.enum(["general", "teen", "mature", "adult"])
 const episodeStatus = z.enum([
@@ -74,8 +84,8 @@ const episodeStatus = z.enum([
 const animeFields = {
 	title: z.string().min(1, "Title is required").max(200).trim(),
 	description: z.string().max(5000).nullish(),
-	coverImageUrl: z.string().url().nullish(),
-	bannerImageUrl: z.string().url().nullish(),
+	coverImageUrl: imageUrl.nullish(),
+	bannerImageUrl: imageUrl.nullish(),
 	status: catalogStatus.optional(),
 	contentRating: contentRating.optional(),
 	studioName: z.string().max(200).nullish(),
@@ -155,7 +165,7 @@ export const updateEpisodeSchema = z.object({
 			slug: z.string().max(250),
 			description: z.string().max(5000).nullish(),
 			durationSeconds: z.number().int().min(0).nullish(),
-			thumbnailUrl: z.string().url().nullish(),
+			thumbnailUrl: imageUrl.nullish(),
 			status: episodeStatus,
 		})
 		.partial(),
