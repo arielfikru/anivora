@@ -77,7 +77,7 @@ function buildAnime(deps: Dependencies) {
 	return {
 		list: makeListAllAnime({ animeRepo: deps.animeRepo }),
 		get: makeGetAnimeAdmin({ animeRepo: deps.animeRepo }),
-		create: makeCreateAnime(shared),
+		create: makeCreateAnime({ ...shared, seasonRepo: deps.seasonRepo }),
 		update: makeUpdateAnime(shared),
 		delete: makeDeleteAnime(shared),
 	}
@@ -119,11 +119,18 @@ function buildEpisode(deps: Dependencies) {
 		uploadVideo: makeUploadEpisodeVideo(withBunny),
 		createUpload: makeCreateUploadTicket(withBunny),
 		attachBunny: makeAttachBunnyVideo(withBunny),
-		syncStatus: makeSyncEpisodeStatus(withBunny),
+		syncStatus: makeSyncEpisodeStatus({
+			...withBunny,
+			seasonRepo: deps.seasonRepo,
+		}),
 		setSeasonStatus: makeSetSeasonEpisodesStatus(shared),
-		handleWebhook: makeHandleBunnyWebhook(shared),
+		handleWebhook: makeHandleBunnyWebhook({
+			...shared,
+			seasonRepo: deps.seasonRepo,
+		}),
 		pollProcessing: makePollProcessingEpisodes({
 			episodeRepo: deps.episodeRepo,
+			seasonRepo: deps.seasonRepo,
 			bunny: deps.bunny,
 		}),
 	}

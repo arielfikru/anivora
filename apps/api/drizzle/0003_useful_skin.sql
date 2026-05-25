@@ -1,0 +1,1 @@
+ALTER TABLE "season" ADD COLUMN "auto_publish" boolean DEFAULT false NOT NULL;

@@ -1,4 +1,6 @@
 import {
+	IconBolt,
+	IconBoltOff,
 	IconEye,
 	IconEyeOff,
 	IconPlaylistAdd,
@@ -54,10 +56,32 @@ export function EpisodeManager() {
 	})
 	const episodes = (data?.episodes ?? []) as EpisodeRow[]
 
+	const { data: seasonsData } = useQuery({
+		...orpc.admin.listSeasons.queryOptions({ input: { animeId } }),
+		enabled: Boolean(animeId),
+	})
+	const currentSeason = seasonsData?.seasons.find((s) => s.id === seasonId)
+	const autoPublish = Boolean(currentSeason?.autoPublish)
+
 	const invalidateEpisodes = () =>
 		queryClient.invalidateQueries({
 			queryKey: orpc.admin.listEpisodes.key({ input: { seasonId } }),
 		})
+
+	const toggleAutoPublish = useMutation({
+		...orpc.admin.updateSeason.mutationOptions(),
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: orpc.admin.listSeasons.key({ input: { animeId } }),
+			})
+			toast.success(
+				autoPublish
+					? "Auto-publish dimatikan"
+					: "Auto-publish saat video siap diaktifkan",
+			)
+		},
+		onError: (e) => toast.error(extractErrorMessage(e)),
+	})
 
 	const deleteEpisode = useMutation({
 		...orpc.admin.deleteEpisode.mutationOptions(),
@@ -135,6 +159,24 @@ export function EpisodeManager() {
 				>
 					<IconEyeOff className="size-4" />
 					Hide All
+				</Button>
+				<Button
+					size="sm"
+					variant={autoPublish ? "default" : "outline"}
+					disabled={!seasonId || toggleAutoPublish.isPending}
+					onClick={() =>
+						toggleAutoPublish.mutate({
+							id: seasonId,
+							data: { autoPublish: !autoPublish },
+						})
+					}
+				>
+					{autoPublish ? (
+						<IconBolt className="size-4" />
+					) : (
+						<IconBoltOff className="size-4" />
+					)}
+					Auto Publish When Ready
 				</Button>
 			</div>
 

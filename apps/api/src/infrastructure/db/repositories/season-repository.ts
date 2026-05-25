@@ -17,6 +17,7 @@ function toSeason(row: SeasonRow): Season {
 		description: row.description,
 		releaseYear: row.releaseYear,
 		status: row.status as CatalogStatus,
+		autoPublish: row.autoPublish,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 	}

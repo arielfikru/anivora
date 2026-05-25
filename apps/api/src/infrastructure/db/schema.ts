@@ -107,6 +107,7 @@ export const season = pgTable("season", {
 	description: text("description"),
 	releaseYear: integer("release_year"),
 	status: text("status").notNull().default("draft"),
+	autoPublish: boolean("auto_publish").notNull().default(false),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
