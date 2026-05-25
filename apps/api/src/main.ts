@@ -31,6 +31,7 @@ import { createSeasonRepository } from "#/infrastructure/db/repositories/season-
 import { createUserRepository } from "#/infrastructure/db/repositories/user-repository.ts"
 import { registerBunnyRoutes } from "#/presentation/http/bunny-routes.ts"
 import { registerImageRoutes } from "#/presentation/http/image-routes.ts"
+import { registerVideoProxyRoutes } from "#/presentation/http/video-proxy-routes.ts"
 import { startEpisodePoller } from "#/presentation/http/episode-poller.ts"
 import { buildRouter } from "#/presentation/routers/index.ts"
 
@@ -128,6 +129,11 @@ registerBunnyRoutes(app, {
 })
 
 registerImageRoutes(app, { auth, uploadDir: env.UPLOAD_DIR })
+
+registerVideoProxyRoutes(app, {
+	cdnHostname: env.BUNNY_STREAM_CDN_HOSTNAME,
+	referer: WEB_ORIGIN,
+})
 
 const buildContext = async (headers: Headers) => {
 	const session = await auth.getSession(headers)
