@@ -39,7 +39,10 @@ export default defineConfig({
 			modernPolyfills: true,
 			// core-js covers ES syntax/builtins but not Web APIs. Old TV engines
 			// lack the Streams API (TransformStream) that the RPC client uses.
-			additionalLegacyPolyfills: ["web-streams-polyfill/polyfill"],
+			// Use the ES5 build — additionalLegacyPolyfills are concatenated as-is
+			// (not transpiled), and the default export ships modern syntax that
+			// the oldest TVs cannot parse.
+			additionalLegacyPolyfills: ["web-streams-polyfill/dist/polyfill.min.js"],
 		}),
 	],
 	server: {
