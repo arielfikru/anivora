@@ -223,6 +223,7 @@ function Player({
 			<CoverImage
 				src={episode.thumbnailUrl}
 				title={episode.title ?? episode.episodeCode}
+				fallback="/banner.png"
 			/>
 			<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60">
 				<Film className="size-12 text-anv-muted" />

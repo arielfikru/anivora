@@ -49,6 +49,7 @@ function EpisodeRow({
 				<CoverImage
 					src={episode.thumbnailUrl}
 					title={episode.title ?? episode.episodeCode}
+					fallback="/banner.png"
 				/>
 				<span className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
 					<Play className="size-8 fill-white text-white" />

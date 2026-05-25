@@ -20,6 +20,7 @@ export function HeroBanner({ anime, description, isNew }: IHeroBannerProps) {
 				<CoverImage
 					src={anime.bannerImageUrl ?? anime.coverImageUrl}
 					title={anime.title}
+					fallback="/banner.png"
 				/>
 			</div>
 			<div className="absolute inset-0 bg-gradient-to-r from-anv-bg via-anv-bg/70 to-transparent" />

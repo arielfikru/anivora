@@ -46,7 +46,7 @@ export function MediaCard({
 					"group-focus-visible:border-anv-red group-focus-visible:shadow-[0_0_0_3px_rgba(226,54,54,0.35),0_18px_40px_rgba(0,0,0,0.6)]",
 				)}
 			>
-				<CoverImage src={imageUrl} title={title} />
+				<CoverImage src={imageUrl} title={title} fallback="/cover.png" />
 				{isNew ? (
 					<span className="absolute left-2 top-2 rounded-md bg-anv-red px-2 py-0.5 text-[11px] font-bold tracking-wide text-white shadow">
 						BARU
