@@ -1,4 +1,5 @@
 import { paraglideVitePlugin } from "@inlang/paraglide-js"
+import legacy from "@vitejs/plugin-legacy"
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
 import viteReact from "@vitejs/plugin-react"
@@ -28,6 +29,13 @@ export default defineConfig({
 				plugins: ["babel-plugin-react-compiler"],
 			},
 		}),
+		// Smart TV browsers (Tizen/webOS/Android TV WebView) can run old Chromium
+		// that cannot parse the default modern-ESM output, leaving a white screen.
+		// Emit a nomodule ES5 + polyfill bundle they load via SystemJS fallback.
+		legacy({
+			targets: ["chrome >= 51", "safari >= 10"],
+			modernPolyfills: true,
+		}),
 	],
 	server: {
 		proxy: {
@@ -42,6 +50,7 @@ export default defineConfig({
 		},
 	},
 	build: {
+		target: "es2015",
 		rollupOptions: {
 			output: {
 				manualChunks(id) {
