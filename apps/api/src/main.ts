@@ -201,16 +201,41 @@ const webDistPath = env.WEB_DIST_PATH
 if (webDistPath) {
 	const absDist = resolve(webDistPath)
 	const indexHtmlPath = resolve(absDist, "index.html")
-	app.use("/assets/*", serveStatic({ root: absDist }))
-	app.use("/*", serveStatic({ root: absDist }))
-	app.get("*", async (c) => {
+	const chooserHtmlPath = resolve(absDist, "choose.html")
+	// SPA assets are built with vite base "/app/" → strip it back to disk paths.
+	const stripApp = (p: string) => {
+		const rest = p.replace(/^\/app/, "")
+		return rest === "" ? "/" : rest
+	}
+
+	// Bare root serves the static device chooser (modern vs TV/legacy).
+	app.get("/", async (c) => {
 		try {
-			const html = await readFile(indexHtmlPath, "utf8")
-			return c.html(html)
+			return c.html(await readFile(chooserHtmlPath, "utf8"))
 		} catch {
 			return c.notFound()
 		}
 	})
+
+	// Modern SPA lives under /app: assets first, then the shell for deep links.
+	app.use(
+		"/app/*",
+		serveStatic({ root: absDist, rewriteRequestPath: stripApp }),
+	)
+	app.get("/app", (c) => c.redirect("/app/"))
+	app.get("/app/*", async (c) => {
+		try {
+			return c.html(await readFile(indexHtmlPath, "utf8"))
+		} catch {
+			return c.notFound()
+		}
+	})
+
+	// Root-level static files: tv.html, choose assets, images, robots, etc.
+	app.use("/*", serveStatic({ root: absDist }))
+
+	// Unknown paths fall back to the chooser.
+	app.get("*", (c) => c.redirect("/"))
 }
 
 const port = env.PORT
