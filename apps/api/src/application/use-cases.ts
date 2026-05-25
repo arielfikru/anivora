@@ -22,6 +22,7 @@ import { makeListGenres } from "./catalog/list-genres.ts"
 import { makeSearchAnime } from "./catalog/search-anime.ts"
 import { makeAttachBunnyVideo } from "./episode/attach-bunny-video.ts"
 import { makeCreateEpisode } from "./episode/create-episode.ts"
+import { makeCreateUploadTicket } from "./episode/create-upload-ticket.ts"
 import { makeDeleteEpisode } from "./episode/delete-episode.ts"
 import { makeHandleBunnyWebhook } from "./episode/handle-bunny-webhook.ts"
 import { makeListEpisodes } from "./episode/list-episodes.ts"
@@ -109,6 +110,7 @@ function buildEpisode(deps: Dependencies) {
 		update: makeUpdateEpisode(shared),
 		delete: makeDeleteEpisode(shared),
 		uploadVideo: makeUploadEpisodeVideo(withBunny),
+		createUpload: makeCreateUploadTicket(withBunny),
 		attachBunny: makeAttachBunnyVideo(withBunny),
 		syncStatus: makeSyncEpisodeStatus(withBunny),
 		handleWebhook: makeHandleBunnyWebhook(shared),

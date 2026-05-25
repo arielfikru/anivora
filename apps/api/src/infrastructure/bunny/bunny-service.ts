@@ -1,4 +1,10 @@
+import { createHash } from "node:crypto"
+
 import type { BunnyService } from "#/domain/ports/bunny.ts"
+
+// Direct (TUS) uploads are valid for this long; the browser uploads straight
+// to Bunny within the window, bypassing our origin and any CDN body limit.
+const UPLOAD_TTL_MS = 2 * 60 * 60 * 1000
 
 export interface BunnyConfig {
 	libraryId: string
@@ -30,6 +36,26 @@ export function createBunnyService(config: BunnyConfig): BunnyService {
 			})
 			const body = (await res.json()) as { guid: string }
 			return { videoId: body.guid }
+		},
+
+		async createDirectUpload(title) {
+			const res = await request(videosUrl, {
+				method: "POST",
+				headers: { ...headers, "content-type": "application/json" },
+				body: JSON.stringify({ title }),
+			})
+			const { guid } = (await res.json()) as { guid: string }
+			const expiration = Date.now() + UPLOAD_TTL_MS
+			const signature = createHash("sha256")
+				.update(config.libraryId + config.apiKey + expiration + guid)
+				.digest("hex")
+			return {
+				videoId: guid,
+				libraryId: config.libraryId,
+				endpoint: `${config.baseUrl}/tusupload`,
+				signature,
+				expiration,
+			}
 		},
 
 		async uploadVideo(videoId, file) {
