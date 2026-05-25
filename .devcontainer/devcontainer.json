@@ -1,0 +1,26 @@
+{
+  "name": "SaaS Boilerplate",
+  "dockerComposeFile": ["../docker-compose.dev.yml", "docker-compose.yml"],
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [3000, 5432, 6379],
+  "containerEnv": {
+    "DATABASE_URL": "postgresql://tanstack:tanstack@postgres:5432/tanstack_start_dev",
+    "REDIS_URL": "redis://redis:6379",
+    "BETTER_AUTH_URL": "http://localhost:3000"
+  },
+  "postCreateCommand": "corepack enable pnpm && pnpm install",
+  "postStartCommand": "pnpm db:push",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "biomejs.biome",
+        "bradlc.vscode-tailwindcss"
+      ],
+      "settings": {
+        "editor.defaultFormatter": "biomejs.biome",
+        "editor.formatOnSave": true
+      }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"language_label": "Bahasa",
+	"current_locale": "Bahasa saat ini: {locale}",
+
+	"sign_in": "Masuk",
+	"sign_up": "Daftar",
+	"sign_out": "Keluar",
+	"email": "Email",
+	"password": "Kata sandi",
+	"name": "Nama",
+	"continue_with_google": "Lanjutkan dengan Google",
+	"sign_in_to_account": "Masuk ke akun Anda",
+	"enter_credentials": "Masukkan email dan kata sandi Anda di bawah",
+	"create_account": "Buat akun",
+	"enter_details": "Masukkan detail Anda di bawah untuk membuat akun",
+	"no_account": "Belum punya akun?",
+	"have_account": "Sudah punya akun?",
+	"terms_agree": "Dengan mengklik lanjutkan, Anda menyetujui",
+	"terms_of_service": "Syarat Layanan",
+	"privacy_policy": "Kebijakan Privasi",
+
+	"dashboard": "Dasbor",
+	"settings": "Pengaturan",
+	"users": "Pengguna",
+	"roles": "Peran",
+	"permissions": "Izin",
+	"activity": "Aktivitas",
+	"organizations": "Organisasi",
+
+	"save": "Simpan",
+	"cancel": "Batal",
+	"delete": "Hapus",
+	"edit": "Ubah",
+	"create": "Buat",
+	"search": "Cari",
+	"loading": "Memuat\u2026",
+
+	"profile": "Profil",
+	"security": "Keamanan",
+	"organization": "Organisasi",
+	"members": "Anggota",
+
+	"error_required": "Kolom ini wajib diisi",
+	"error_invalid_email": "Alamat email tidak valid",
+	"error_min_password": "Kata sandi minimal 8 karakter"
+}

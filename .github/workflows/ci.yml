@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Biome (lint + format + import order)
+        run: pnpm exec biome ci .
+
+      - name: Typecheck @anivora/api
+        run: pnpm --filter @anivora/api exec tsc --noEmit
+
+      - name: Drizzle migration drift check
+        run: |
+          pnpm --filter @anivora/api exec drizzle-kit generate --name=ci_drift_check
+          if ! git diff --quiet --exit-code apps/api/drizzle; then
+            echo "::error::schema.ts drifted from migrations — run 'pnpm db:generate' and commit"
+            git diff apps/api/drizzle
+            exit 1
+          fi
+
+      - name: Build @anivora/web (also generates routeTree + paraglide)
+        run: pnpm --filter @anivora/web build
+
+      - name: Typecheck @anivora/web
+        run: pnpm --filter @anivora/web exec tsc --noEmit
+
+      - name: Tests
+        run: pnpm --filter "./apps/*" run --if-present test
+
+  flake:
+    name: flake-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Flake check (evaluation only)
+        run: nix flake check --all-systems --no-build

@@ -1,0 +1,88 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.4.5/schema.json",
+	"vcs": {
+		"enabled": false,
+		"clientKind": "git",
+		"useIgnoreFile": false
+	},
+	"files": {
+		"ignoreUnknown": false,
+		"includes": [
+			"**/apps/*/src/**/*",
+			"**/.vscode/**/*",
+			"**/apps/*/index.html",
+			"**/apps/*/vite.config.ts",
+			"!**/apps/*/src/routeTree.gen.ts",
+			"!**/apps/*/src/styles.css",
+			"!**/apps/*/src/libs/paraglide/generated/**/*"
+		]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab"
+	},
+	"assist": { "actions": { "source": { "organizeImports": "off" } } },
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true,
+			"correctness": {
+				"useExhaustiveDependencies": "off"
+			},
+			"suspicious": {
+				"noArrayIndexKey": "off"
+			}
+		}
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "double",
+			"semicolons": "asNeeded"
+		}
+	},
+	"overrides": [
+		{
+			"includes": ["**/apps/web/src/components/ui/**"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noDocumentCookie": "off"
+					},
+					"security": {
+						"noDangerouslySetInnerHtml": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": ["**/apps/web/index.html"],
+			"linter": {
+				"rules": {
+					"correctness": {
+						"noInnerDeclarations": "off",
+						"noUnusedVariables": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"**/apps/api/src/main.ts",
+				"**/apps/api/src/infrastructure/auth/better-auth.ts",
+				"**/apps/api/src/infrastructure/db/seed.ts",
+				"**/apps/api/src/polyfill.ts",
+				"**/apps/web/src/routes/_authenticated/_components/permissions-matrix/hook.ts"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noNonNullAssertion": "off"
+					},
+					"suspicious": {
+						"noExplicitAny": "off"
+					}
+				}
+			}
+		}
+	]
+}

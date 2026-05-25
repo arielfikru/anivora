@@ -1,0 +1,3 @@
+{
+  "routeFileIgnorePattern": "^(_hooks|_components|_server|_data)"
+}

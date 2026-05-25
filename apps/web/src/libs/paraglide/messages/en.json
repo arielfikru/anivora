@@ -1,0 +1,47 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"language_label": "Language",
+	"current_locale": "Current locale: {locale}",
+
+	"sign_in": "Sign in",
+	"sign_up": "Sign up",
+	"sign_out": "Sign out",
+	"email": "Email",
+	"password": "Password",
+	"name": "Name",
+	"continue_with_google": "Continue with Google",
+	"sign_in_to_account": "Sign in to your account",
+	"enter_credentials": "Enter your email and password below",
+	"create_account": "Create an account",
+	"enter_details": "Enter your details below to create your account",
+	"no_account": "Don't have an account?",
+	"have_account": "Already have an account?",
+	"terms_agree": "By clicking continue, you agree to our",
+	"terms_of_service": "Terms of Service",
+	"privacy_policy": "Privacy Policy",
+
+	"dashboard": "Dashboard",
+	"settings": "Settings",
+	"users": "Users",
+	"roles": "Roles",
+	"permissions": "Permissions",
+	"activity": "Activity",
+	"organizations": "Organizations",
+
+	"save": "Save",
+	"cancel": "Cancel",
+	"delete": "Delete",
+	"edit": "Edit",
+	"create": "Create",
+	"search": "Search",
+	"loading": "Loading…",
+
+	"profile": "Profile",
+	"security": "Security",
+	"organization": "Organization",
+	"members": "Members",
+
+	"error_required": "This field is required",
+	"error_invalid_email": "Invalid email address",
+	"error_min_password": "Password must be at least 8 characters"
+}

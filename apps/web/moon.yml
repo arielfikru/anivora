@@ -1,0 +1,54 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+layer: 'application'
+language: 'typescript'
+stack: 'frontend'
+
+dependsOn:
+  - 'api'
+
+tasks:
+  dev:
+    command: 'pnpm dev'
+    options:
+      persistent: true
+      runInCI: false
+
+  build:
+    command: 'pnpm build'
+    inputs:
+      - 'src/**/*'
+      - 'public/**/*'
+      - 'index.html'
+      - 'vite.config.ts'
+      - 'tsconfig.json'
+      - 'package.json'
+    outputs:
+      - 'dist'
+
+  preview:
+    command: 'pnpm preview'
+    options:
+      persistent: true
+      runInCI: false
+
+  test:
+    command: 'pnpm test'
+    inputs:
+      - 'src/**/*'
+      - 'tsconfig.json'
+      - 'package.json'
+
+  storybook:
+    command: 'pnpm storybook'
+    options:
+      persistent: true
+      runInCI: false
+
+  build-storybook:
+    command: 'pnpm build-storybook'
+    inputs:
+      - 'src/**/*'
+      - '.storybook/**/*'
+    outputs:
+      - 'storybook-static'

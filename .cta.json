@@ -1,0 +1,35 @@
+{
+  "projectName": "anivora",
+  "mode": "file-router",
+  "typescript": true,
+  "packageManager": "pnpm",
+  "includeExamples": false,
+  "tailwind": true,
+  "addOnOptions": {
+    "drizzle": {
+      "database": "postgresql"
+    }
+  },
+  "envVarValues": {},
+  "git": true,
+  "routerOnly": false,
+  "version": 1,
+  "framework": "react",
+  "chosenAddOns": [
+    "biome",
+    "compiler",
+    "db",
+    "drizzle",
+    "form",
+    "mcp",
+    "paraglide",
+    "shadcn",
+    "table",
+    "better-auth",
+    "store",
+    "posthog",
+    "storybook",
+    "tanstack-query",
+    "oRPC"
+  ]
+}

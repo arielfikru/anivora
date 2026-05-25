@@ -1,0 +1,33 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+# Tasks inherited by every project. Individual projects can override or extend.
+fileGroups:
+  sources:
+    - 'src/**/*'
+  configs:
+    - '*.{js,json,ts,yml}'
+
+tasks:
+  check:
+    command: 'biome check'
+    inputs:
+      - '@group(sources)'
+      - '@group(configs)'
+    options:
+      runInCI: true
+
+  lint:
+    command: 'biome lint'
+    inputs:
+      - '@group(sources)'
+      - '@group(configs)'
+    options:
+      runInCI: true
+
+  format:
+    command: 'biome format'
+    inputs:
+      - '@group(sources)'
+      - '@group(configs)'
+    options:
+      runInCI: false

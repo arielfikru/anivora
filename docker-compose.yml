@@ -1,0 +1,133 @@
+name: anivora
+
+x-common-security: &common-security
+  security_opt:
+    - "no-new-privileges:true"
+  cap_drop:
+    - ALL
+  restart: unless-stopped
+
+services:
+  migrate:
+    image: anivora:latest
+    command: ["node", "/app/api/migrate.mjs"]
+    read_only: true
+    user: "1000:1000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://anivora:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/anivora
+    networks:
+      - backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    <<: *common-security
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+      pull: false
+    image: anivora:latest
+    ports:
+      - "3000:3000"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    user: "1000:1000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://anivora:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/anivora
+      REDIS_URL: redis://redis:6379
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET (openssl rand -hex 32)}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    networks:
+      - backend
+      - frontend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+    <<: *common-security
+
+  postgres:
+    image: postgres:16-alpine
+    user: "postgres"
+    environment:
+      POSTGRES_DB: anivora
+      POSTGRES_USER: anivora
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anivora -d anivora"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+    <<: *common-security
+
+  redis:
+    image: redis:7-alpine
+    command:
+      [
+        "redis-server",
+        "--save",
+        "",
+        "--appendonly",
+        "no",
+        "--maxmemory",
+        "128mb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+      ]
+    user: "redis"
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits:
+          memory: 160M
+          cpus: "0.5"
+    <<: *common-security
+
+networks:
+  frontend:
+  backend:
+    internal: true
+
+volumes:
+  postgres_data:
+  redis_data:
