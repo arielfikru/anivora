@@ -28,6 +28,7 @@ import { makeDeleteEpisode } from "./episode/delete-episode.ts"
 import { makeHandleBunnyWebhook } from "./episode/handle-bunny-webhook.ts"
 import { makeListEpisodes } from "./episode/list-episodes.ts"
 import { makePollProcessingEpisodes } from "./episode/poll-processing-episodes.ts"
+import { makeSetSeasonEpisodesStatus } from "./episode/set-season-episodes-status.ts"
 import { makeSyncEpisodeStatus } from "./episode/sync-episode-status.ts"
 import { makeUpdateEpisode } from "./episode/update-episode.ts"
 import { makeUploadEpisodeVideo } from "./episode/upload-episode-video.ts"
@@ -119,6 +120,7 @@ function buildEpisode(deps: Dependencies) {
 		createUpload: makeCreateUploadTicket(withBunny),
 		attachBunny: makeAttachBunnyVideo(withBunny),
 		syncStatus: makeSyncEpisodeStatus(withBunny),
+		setSeasonStatus: makeSetSeasonEpisodesStatus(shared),
 		handleWebhook: makeHandleBunnyWebhook(shared),
 		pollProcessing: makePollProcessingEpisodes({
 			episodeRepo: deps.episodeRepo,

@@ -180,6 +180,11 @@ export const bulkCreateEpisodesSchema = z.object({
 	startNumber: z.number().int().min(0).nullish(),
 })
 
+export const setSeasonEpisodesStatusSchema = z.object({
+	seasonId: id,
+	status: episodeStatus,
+})
+
 export const attachBunnyVideoSchema = z.object({
 	episodeId: id,
 	bunnyVideoId: z.string().min(1, "Bunny video ID is required"),
