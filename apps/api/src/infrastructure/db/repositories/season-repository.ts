@@ -24,6 +24,15 @@ function toSeason(row: SeasonRow): Season {
 
 export function createSeasonRepository(db: Db): SeasonRepository {
 	return {
+		async listByAnime(animeId) {
+			const rows = await db
+				.select()
+				.from(schema.season)
+				.where(eq(schema.season.animeId, animeId))
+				.orderBy(asc(schema.season.seasonNumber))
+			return rows.map(toSeason)
+		},
+
 		async listPublishedByAnime(animeId) {
 			const rows = await db
 				.select()

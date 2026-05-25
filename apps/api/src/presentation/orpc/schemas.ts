@@ -105,6 +105,10 @@ export const searchAnimeSchema = z.object({
 export const animeSlugSchema = z.object({ slug: z.string().min(1) })
 export const episodeSlugSchema = z.object({ slug: z.string().min(1) })
 
+export const getAnimeAdminSchema = z.object({ id })
+export const listSeasonsSchema = z.object({ animeId: id })
+export const listEpisodesSchema = z.object({ seasonId: id })
+
 export const createAnimeSchema = z.object(animeFields)
 export const updateAnimeSchema = z.object({
 	id,
@@ -157,6 +161,15 @@ export const updateEpisodeSchema = z.object({
 		.partial(),
 })
 export const deleteEpisodeSchema = z.object({ id })
+
+export const attachBunnyVideoSchema = z.object({
+	episodeId: id,
+	bunnyVideoId: z.string().min(1, "Bunny video ID is required"),
+	bunnyLibraryId: z.string().min(1, "Bunny library ID is required"),
+	status: episodeStatus.optional(),
+})
+
+export const syncEpisodeStatusSchema = z.object({ episodeId: id })
 
 export const createGenreSchema = z.object({
 	name: z.string().min(1, "Name is required").max(100).trim(),

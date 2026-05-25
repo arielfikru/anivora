@@ -7,6 +7,7 @@ import type {
 } from "./anime.ts"
 
 export interface AnimeRepository {
+	listAll(): Promise<AnimeListItem[]>
 	listPublished(filters: AnimeListFilters): Promise<AnimeListItem[]>
 	searchPublished(query: string, limit: number): Promise<AnimeListItem[]>
 	findBySlug(slug: string): Promise<Anime | null>

@@ -37,6 +37,13 @@ function publishedListQuery(db: Db, filters: AnimeListFilters) {
 
 export function createAnimeRepository(db: Db): AnimeRepository {
 	return {
+		async listAll(): Promise<AnimeListItem[]> {
+			return db
+				.select(listColumns)
+				.from(schema.anime)
+				.orderBy(desc(schema.anime.createdAt))
+		},
+
 		async listPublished(filters): Promise<AnimeListItem[]> {
 			return publishedListQuery(db, filters)
 				.orderBy(desc(schema.anime.createdAt))

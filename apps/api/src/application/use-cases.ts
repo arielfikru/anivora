@@ -4,6 +4,7 @@ import type { EpisodeRepository } from "#/domain/catalog/episode-repository.ts"
 import type { GenreRepository } from "#/domain/catalog/genre-repository.ts"
 import type { SeasonRepository } from "#/domain/catalog/season-repository.ts"
 import type { AuthService } from "#/domain/ports/auth-service.ts"
+import type { BunnyService } from "#/domain/ports/bunny.ts"
 import type { Cache } from "#/domain/ports/cache.ts"
 import type { UserRepository } from "#/domain/user/user-repository.ts"
 
@@ -13,17 +14,26 @@ import { makeDeleteAnime } from "./anime/delete-anime.ts"
 import { makeUpdateAnime } from "./anime/update-anime.ts"
 import { makeGetSession } from "./auth/get-session.ts"
 import { makeGetAnime } from "./catalog/get-anime.ts"
+import { makeGetAnimeAdmin } from "./catalog/get-anime-admin.ts"
 import { makeGetEpisode } from "./catalog/get-episode.ts"
+import { makeListAllAnime } from "./catalog/list-all-anime.ts"
 import { makeListAnime } from "./catalog/list-anime.ts"
 import { makeListGenres } from "./catalog/list-genres.ts"
 import { makeSearchAnime } from "./catalog/search-anime.ts"
+import { makeAttachBunnyVideo } from "./episode/attach-bunny-video.ts"
 import { makeCreateEpisode } from "./episode/create-episode.ts"
 import { makeDeleteEpisode } from "./episode/delete-episode.ts"
+import { makeHandleBunnyWebhook } from "./episode/handle-bunny-webhook.ts"
+import { makeListEpisodes } from "./episode/list-episodes.ts"
+import { makePollProcessingEpisodes } from "./episode/poll-processing-episodes.ts"
+import { makeSyncEpisodeStatus } from "./episode/sync-episode-status.ts"
 import { makeUpdateEpisode } from "./episode/update-episode.ts"
+import { makeUploadEpisodeVideo } from "./episode/upload-episode-video.ts"
 import { makeCreateGenre } from "./genre/create-genre.ts"
 import { makeDeleteGenre } from "./genre/delete-genre.ts"
 import { makeCreateSeason } from "./season/create-season.ts"
 import { makeDeleteSeason } from "./season/delete-season.ts"
+import { makeListSeasons } from "./season/list-seasons.ts"
 import { makeUpdateSeason } from "./season/update-season.ts"
 import { makeBanUser } from "./user/ban-user.ts"
 import { makeCreateUser } from "./user/create-user.ts"
@@ -42,6 +52,7 @@ export interface Dependencies {
 	genreRepo: GenreRepository
 	cache: Cache
 	auth: AuthService
+	bunny: BunnyService
 }
 
 function buildCatalog(deps: Dependencies) {
@@ -61,6 +72,8 @@ function buildCatalog(deps: Dependencies) {
 function buildAnime(deps: Dependencies) {
 	const shared = { animeRepo: deps.animeRepo, activityRepo: deps.activityRepo }
 	return {
+		list: makeListAllAnime({ animeRepo: deps.animeRepo }),
+		get: makeGetAnimeAdmin({ animeRepo: deps.animeRepo }),
 		create: makeCreateAnime(shared),
 		update: makeUpdateAnime(shared),
 		delete: makeDeleteAnime(shared),
@@ -73,6 +86,7 @@ function buildSeason(deps: Dependencies) {
 		activityRepo: deps.activityRepo,
 	}
 	return {
+		list: makeListSeasons({ seasonRepo: deps.seasonRepo }),
 		create: makeCreateSeason({ ...shared, animeRepo: deps.animeRepo }),
 		update: makeUpdateSeason(shared),
 		delete: makeDeleteSeason(shared),
@@ -84,7 +98,9 @@ function buildEpisode(deps: Dependencies) {
 		episodeRepo: deps.episodeRepo,
 		activityRepo: deps.activityRepo,
 	}
+	const withBunny = { ...shared, bunny: deps.bunny }
 	return {
+		list: makeListEpisodes({ episodeRepo: deps.episodeRepo }),
 		create: makeCreateEpisode({
 			...shared,
 			seasonRepo: deps.seasonRepo,
@@ -92,6 +108,14 @@ function buildEpisode(deps: Dependencies) {
 		}),
 		update: makeUpdateEpisode(shared),
 		delete: makeDeleteEpisode(shared),
+		uploadVideo: makeUploadEpisodeVideo(withBunny),
+		attachBunny: makeAttachBunnyVideo(withBunny),
+		syncStatus: makeSyncEpisodeStatus(withBunny),
+		handleWebhook: makeHandleBunnyWebhook(shared),
+		pollProcessing: makePollProcessingEpisodes({
+			episodeRepo: deps.episodeRepo,
+			bunny: deps.bunny,
+		}),
 	}
 }
 

@@ -2,15 +2,15 @@ services:
   postgres:
     image: postgres:16-alpine
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5435:5432"
     environment:
-      POSTGRES_DB: tanstack_start_dev
-      POSTGRES_USER: tanstack
-      POSTGRES_PASSWORD: tanstack
+      POSTGRES_DB: anivora_dev
+      POSTGRES_USER: anivora
+      POSTGRES_PASSWORD: anivora
     volumes:
       - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tanstack -d tanstack_start_dev"]
+      test: ["CMD-SHELL", "pg_isready -U anivora -d anivora_dev"]
       interval: 5s
       timeout: 5s
       retries: 5
