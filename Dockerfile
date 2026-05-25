@@ -61,6 +61,7 @@ RUN apk add --no-cache dumb-init wget
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV WEB_DIST_PATH=/app/web
+ENV UPLOAD_DIR=/app/uploads
 
 WORKDIR /app
 COPY --from=prune /out/api ./api
@@ -68,7 +69,9 @@ COPY --from=build /app/apps/web/dist ./web
 
 # node:alpine already ships with an unprivileged `node` user (uid 1000).
 # Drop root and make only the data we need writeable at runtime.
-RUN chown -R node:node /app
+# /app/uploads is a persistent volume mount (admin-uploaded poster/banner
+# images); create it owned by node so the read-only rootfs container can write.
+RUN mkdir -p /app/uploads && chown -R node:node /app
 USER node
 
 EXPOSE 3000

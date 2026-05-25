@@ -23,3 +23,7 @@ mcp-todos.json
 
 # harness
 .claude/
+
+# local uploaded assets
+apps/api/uploads
+uploads

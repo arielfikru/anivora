@@ -30,6 +30,7 @@ import { createGenreRepository } from "#/infrastructure/db/repositories/genre-re
 import { createSeasonRepository } from "#/infrastructure/db/repositories/season-repository.ts"
 import { createUserRepository } from "#/infrastructure/db/repositories/user-repository.ts"
 import { registerBunnyRoutes } from "#/presentation/http/bunny-routes.ts"
+import { registerImageRoutes } from "#/presentation/http/image-routes.ts"
 import { startEpisodePoller } from "#/presentation/http/episode-poller.ts"
 import { buildRouter } from "#/presentation/routers/index.ts"
 
@@ -125,6 +126,8 @@ registerBunnyRoutes(app, {
 	useCases,
 	webhookSecret: env.WEBHOOK_SECRET,
 })
+
+registerImageRoutes(app, { auth, uploadDir: env.UPLOAD_DIR })
 
 const buildContext = async (headers: Headers) => {
 	const session = await auth.getSession(headers)

@@ -14,6 +14,7 @@ const envSchema = z
 		WEB_ORIGIN: z.string().url().default("http://localhost:3000"),
 		PORT: z.coerce.number().int().positive().default(3001),
 		WEB_DIST_PATH: z.string().optional(),
+		UPLOAD_DIR: z.string().default("./uploads"),
 		BUNNY_STREAM_LIBRARY_ID: z
 			.string()
 			.min(1, "BUNNY_STREAM_LIBRARY_ID required"),
