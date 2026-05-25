@@ -174,6 +174,12 @@ export const deleteEpisodeSchema = z.object({ id })
 
 export const createEpisodeUploadSchema = z.object({ episodeId: id })
 
+export const bulkCreateEpisodesSchema = z.object({
+	seasonId: id,
+	count: z.number().int().min(1).max(100),
+	startNumber: z.number().int().min(0).nullish(),
+})
+
 export const attachBunnyVideoSchema = z.object({
 	episodeId: id,
 	bunnyVideoId: z.string().min(1, "Bunny video ID is required"),

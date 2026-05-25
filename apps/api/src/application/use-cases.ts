@@ -21,6 +21,7 @@ import { makeListAnime } from "./catalog/list-anime.ts"
 import { makeListGenres } from "./catalog/list-genres.ts"
 import { makeSearchAnime } from "./catalog/search-anime.ts"
 import { makeAttachBunnyVideo } from "./episode/attach-bunny-video.ts"
+import { makeBulkCreateEpisodes } from "./episode/bulk-create-episodes.ts"
 import { makeCreateEpisode } from "./episode/create-episode.ts"
 import { makeCreateUploadTicket } from "./episode/create-upload-ticket.ts"
 import { makeDeleteEpisode } from "./episode/delete-episode.ts"
@@ -103,6 +104,11 @@ function buildEpisode(deps: Dependencies) {
 	return {
 		list: makeListEpisodes({ episodeRepo: deps.episodeRepo }),
 		create: makeCreateEpisode({
+			...shared,
+			seasonRepo: deps.seasonRepo,
+			animeRepo: deps.animeRepo,
+		}),
+		bulkCreate: makeBulkCreateEpisodes({
 			...shared,
 			seasonRepo: deps.seasonRepo,
 			animeRepo: deps.animeRepo,

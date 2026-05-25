@@ -1,4 +1,4 @@
-import { IconPlus } from "@tabler/icons-react"
+import { IconPlaylistAdd, IconPlus } from "@tabler/icons-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 import { toast } from "sonner"
@@ -21,6 +21,7 @@ import {
 } from "#/components/ui/table"
 import { extractErrorMessage } from "#/libs/errors/extract-message"
 import { orpc } from "#/libs/orpc/client"
+import { BulkEpisodeSheet } from "./bulk-episode-sheet"
 import { ConfirmDelete } from "./confirm-delete"
 import { EpisodeFormSheet } from "./episode-form-sheet"
 import { EpisodeUploadCard } from "./episode-upload-card"
@@ -31,6 +32,7 @@ import { SeasonPicker } from "./season-picker"
 type SheetState =
 	| { kind: "none" }
 	| { kind: "create" }
+	| { kind: "bulk" }
 	| { kind: "edit"; episode: EpisodeRow }
 	| { kind: "upload"; episode: EpisodeRow }
 	| { kind: "delete"; episode: EpisodeRow }
@@ -87,6 +89,15 @@ export function EpisodeManager() {
 				>
 					<IconPlus className="size-4" />
 					New Episode
+				</Button>
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={!seasonId}
+					onClick={() => setSheet({ kind: "bulk" })}
+				>
+					<IconPlaylistAdd className="size-4" />
+					Bulk Add
 				</Button>
 			</div>
 
@@ -156,6 +167,13 @@ export function EpisodeManager() {
 			{sheet.kind === "create" && (
 				<EpisodeFormSheet
 					mode="create"
+					seasonId={seasonId}
+					open
+					onOpenChange={() => setSheet({ kind: "none" })}
+				/>
+			)}
+			{sheet.kind === "bulk" && (
+				<BulkEpisodeSheet
 					seasonId={seasonId}
 					open
 					onOpenChange={() => setSheet({ kind: "none" })}
