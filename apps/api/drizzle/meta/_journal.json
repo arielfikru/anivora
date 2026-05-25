@@ -15,6 +15,13 @@
       "when": 1776367521577,
       "tag": "0001_petite_scourge",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779691660000,
+      "tag": "0002_catalog",
+      "breakpoints": true
     }
   ]
 }

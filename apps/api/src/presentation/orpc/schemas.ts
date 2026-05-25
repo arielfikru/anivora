@@ -56,3 +56,109 @@ export const listActivityLogsSchema = z.object({
 	resource: z.string().optional(),
 	action: z.string().optional(),
 })
+
+const id = z.string().min(1, "ID is required")
+const catalogStatus = z.enum(["draft", "published", "hidden", "archived"])
+const contentRating = z.enum(["general", "teen", "mature", "adult"])
+const episodeStatus = z.enum([
+	"draft",
+	"uploaded",
+	"processing",
+	"ready",
+	"published",
+	"failed",
+	"hidden",
+	"archived",
+])
+
+const animeFields = {
+	title: z.string().min(1, "Title is required").max(200).trim(),
+	description: z.string().max(5000).nullish(),
+	coverImageUrl: z.string().url().nullish(),
+	bannerImageUrl: z.string().url().nullish(),
+	status: catalogStatus.optional(),
+	contentRating: contentRating.optional(),
+	studioName: z.string().max(200).nullish(),
+	creatorName: z.string().max(200).nullish(),
+	releaseYear: z.number().int().min(1900).max(2200).nullish(),
+	rightsOwnerName: z.string().max(200).nullish(),
+	licenseType: z.string().max(200).nullish(),
+	permissionDocumentUrl: z.string().url().nullish(),
+	isOriginalContent: z.boolean().optional(),
+	isFanmade: z.boolean().optional(),
+	requiresAttribution: z.boolean().optional(),
+	attributionText: z.string().max(2000).nullish(),
+}
+
+export const listAnimeSchema = z.object({
+	genreSlug: z.string().optional(),
+	search: z.string().max(200).optional(),
+	limit: z.number().int().min(1).max(100).default(24),
+	offset: z.number().int().min(0).default(0),
+})
+
+export const searchAnimeSchema = z.object({
+	query: z.string().min(1).max(200).trim(),
+	limit: z.number().int().min(1).max(100).default(24),
+})
+
+export const animeSlugSchema = z.object({ slug: z.string().min(1) })
+export const episodeSlugSchema = z.object({ slug: z.string().min(1) })
+
+export const createAnimeSchema = z.object(animeFields)
+export const updateAnimeSchema = z.object({
+	id,
+	data: z.object(animeFields).partial(),
+})
+export const deleteAnimeSchema = z.object({ id })
+
+const seasonFields = {
+	title: z.string().max(200).nullish(),
+	description: z.string().max(5000).nullish(),
+	releaseYear: z.number().int().min(1900).max(2200).nullish(),
+	status: catalogStatus.optional(),
+}
+
+export const createSeasonSchema = z.object({
+	animeId: id,
+	seasonNumber: z.number().int().min(0),
+	...seasonFields,
+})
+export const updateSeasonSchema = z.object({
+	id,
+	data: z
+		.object({ seasonNumber: z.number().int().min(0), ...seasonFields })
+		.partial(),
+})
+export const deleteSeasonSchema = z.object({ id })
+
+export const createEpisodeSchema = z.object({
+	seasonId: id,
+	episodeNumber: z.number().int().min(0),
+	title: z.string().max(200).nullish(),
+	description: z.string().max(5000).nullish(),
+	durationSeconds: z.number().int().min(0).nullish(),
+	thumbnailUrl: z.string().url().nullish(),
+})
+
+export const updateEpisodeSchema = z.object({
+	id,
+	data: z
+		.object({
+			episodeNumber: z.number().int().min(0),
+			episodeCode: z.string().max(20),
+			title: z.string().max(200).nullish(),
+			slug: z.string().max(250),
+			description: z.string().max(5000).nullish(),
+			durationSeconds: z.number().int().min(0).nullish(),
+			thumbnailUrl: z.string().url().nullish(),
+			status: episodeStatus,
+		})
+		.partial(),
+})
+export const deleteEpisodeSchema = z.object({ id })
+
+export const createGenreSchema = z.object({
+	name: z.string().min(1, "Name is required").max(100).trim(),
+})
+export const deleteGenreSchema = z.object({ id })

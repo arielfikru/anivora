@@ -23,6 +23,10 @@ import { env } from "#/infrastructure/config/env.ts"
 import { createDb } from "#/infrastructure/db/client.ts"
 import { logger } from "#/infrastructure/observability/logger.ts"
 import { createActivityRepository } from "#/infrastructure/db/repositories/activity-repository.ts"
+import { createAnimeRepository } from "#/infrastructure/db/repositories/anime-repository.ts"
+import { createEpisodeRepository } from "#/infrastructure/db/repositories/episode-repository.ts"
+import { createGenreRepository } from "#/infrastructure/db/repositories/genre-repository.ts"
+import { createSeasonRepository } from "#/infrastructure/db/repositories/season-repository.ts"
 import { createUserRepository } from "#/infrastructure/db/repositories/user-repository.ts"
 import { buildRouter } from "#/presentation/routers/index.ts"
 
@@ -30,6 +34,10 @@ const db = createDb(env.DATABASE_URL)
 
 const activityRepo = createActivityRepository(db)
 const userRepo = createUserRepository(db)
+const animeRepo = createAnimeRepository(db)
+const seasonRepo = createSeasonRepository(db)
+const episodeRepo = createEpisodeRepository(db)
+const genreRepo = createGenreRepository(db)
 
 const cache = createRedisCache(env.REDIS_URL)
 
@@ -39,6 +47,10 @@ const auth = createAuthService(betterAuthInstance)
 const useCases = buildUseCases({
 	userRepo,
 	activityRepo,
+	animeRepo,
+	seasonRepo,
+	episodeRepo,
+	genreRepo,
 	cache,
 	auth,
 })
