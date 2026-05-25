@@ -25,8 +25,24 @@ export function makeGetAnime(deps: GetAnimeDeps) {
 			throw notFound("Anime not found")
 		}
 		const seasons = await loadSeasons(deps, anime.id)
-		return { anime, seasons }
+		// Fall back to the first episode thumbnail when artwork is missing.
+		const thumb = firstEpisodeThumbnail(seasons)
+		const resolved = {
+			...anime,
+			coverImageUrl: anime.coverImageUrl ?? thumb,
+			bannerImageUrl: anime.bannerImageUrl ?? thumb,
+		}
+		return { anime: resolved, seasons }
 	}
+}
+
+function firstEpisodeThumbnail(seasons: SeasonWithEpisodes[]): string | null {
+	for (const season of seasons) {
+		for (const episode of season.episodes) {
+			if (episode.thumbnailUrl) return episode.thumbnailUrl
+		}
+	}
+	return null
 }
 
 async function loadSeasons(
