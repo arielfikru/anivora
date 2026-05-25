@@ -2,6 +2,7 @@ import type { UseCases } from "#/application/use-cases.ts"
 import { adminProcedure, toAuthedContext } from "../orpc/middleware.ts"
 import {
 	attachBunnyVideoSchema,
+	bulkCreateEpisodesSchema,
 	createEpisodeSchema,
 	createEpisodeUploadSchema,
 	deleteEpisodeSchema,
@@ -22,6 +23,12 @@ export function buildEpisodeRouter(useCases: UseCases["episode"]) {
 			.input(createEpisodeSchema)
 			.handler(({ input, context }) =>
 				useCases.create(input, toAuthedContext(context)),
+			),
+
+		bulkCreateEpisodes: adminProcedure
+			.input(bulkCreateEpisodesSchema)
+			.handler(({ input, context }) =>
+				useCases.bulkCreate(input, toAuthedContext(context)),
 			),
 
 		updateEpisode: adminProcedure
