@@ -37,6 +37,9 @@ export default defineConfig({
 		legacy({
 			targets: ["ie >= 11", "chrome >= 38", "safari >= 9"],
 			modernPolyfills: true,
+			// core-js covers ES syntax/builtins but not Web APIs. Old TV engines
+			// lack the Streams API (TransformStream) that the RPC client uses.
+			additionalLegacyPolyfills: ["web-streams-polyfill/polyfill"],
 		}),
 	],
 	server: {
