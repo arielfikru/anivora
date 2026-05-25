@@ -14,6 +14,18 @@ const envSchema = z
 		WEB_ORIGIN: z.string().url().default("http://localhost:3000"),
 		PORT: z.coerce.number().int().positive().default(3001),
 		WEB_DIST_PATH: z.string().optional(),
+		BUNNY_STREAM_LIBRARY_ID: z
+			.string()
+			.min(1, "BUNNY_STREAM_LIBRARY_ID required"),
+		BUNNY_STREAM_API_KEY: z.string().min(1, "BUNNY_STREAM_API_KEY required"),
+		BUNNY_STREAM_CDN_HOSTNAME: z
+			.string()
+			.min(1, "BUNNY_STREAM_CDN_HOSTNAME required"),
+		BUNNY_STREAM_BASE_URL: z
+			.string()
+			.url()
+			.default("https://video.bunnycdn.com"),
+		WEBHOOK_SECRET: z.string().optional(),
 		GOOGLE_CLIENT_ID: z.string().optional(),
 		GOOGLE_CLIENT_SECRET: z.string().optional(),
 		NODE_ENV: z

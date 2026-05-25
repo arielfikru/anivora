@@ -2,12 +2,16 @@ import {
 	IconActivity,
 	IconDashboard,
 	IconDatabase,
+	IconDeviceTv,
 	IconFileWord,
 	IconHelp,
+	IconMovie,
 	IconReport,
 	IconSearch,
 	IconSettings,
+	IconUpload,
 	IconUsers,
+	IconVideo,
 } from "@tabler/icons-react"
 import type * as React from "react"
 
@@ -45,6 +49,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 		{ title: "Dashboard", url: "/dashboard", icon: IconDashboard },
 		...(isAdmin
 			? [
+					{ title: "Anime", url: "/content/anime", icon: IconMovie },
+					{ title: "Seasons", url: "/content/seasons", icon: IconDeviceTv },
+					{ title: "Episodes", url: "/content/episodes", icon: IconVideo },
+					{ title: "Uploads", url: "/content/uploads", icon: IconUpload },
 					{ title: "Users", url: "/users", icon: IconUsers },
 					{ title: "Activity Log", url: "/activity", icon: IconActivity },
 				]

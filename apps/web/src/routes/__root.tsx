@@ -67,6 +67,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		setLocale(locale as "en" | "id")
 		if (typeof document !== "undefined") {
 			document.documentElement.setAttribute("lang", locale)
+			// App is dark-only; force the dark theme class for shadcn tokens.
+			document.documentElement.classList.remove("light")
+			document.documentElement.classList.add("dark")
+			document.documentElement.style.colorScheme = "dark"
 		}
 		const session = await client.auth.getSession()
 		return { session }

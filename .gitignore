@@ -20,3 +20,6 @@ todos.json
 mcp-todos.json
 .direnv
 .devenv
+
+# harness
+.claude/

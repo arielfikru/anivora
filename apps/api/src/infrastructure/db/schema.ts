@@ -1,4 +1,11 @@
-import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import {
+	boolean,
+	integer,
+	pgTable,
+	primaryKey,
+	text,
+	timestamp,
+} from "drizzle-orm/pg-core"
 
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
@@ -66,3 +73,86 @@ export const activityLog = pgTable("activity_log", {
 	userAgent: text("user_agent"),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 })
+
+export const anime = pgTable("anime", {
+	id: text("id").primaryKey(),
+	title: text("title").notNull(),
+	slug: text("slug").notNull().unique(),
+	description: text("description"),
+	coverImageUrl: text("cover_image_url"),
+	bannerImageUrl: text("banner_image_url"),
+	status: text("status").notNull().default("draft"),
+	contentRating: text("content_rating").notNull().default("general"),
+	studioName: text("studio_name"),
+	creatorName: text("creator_name"),
+	releaseYear: integer("release_year"),
+	rightsOwnerName: text("rights_owner_name"),
+	licenseType: text("license_type"),
+	permissionDocumentUrl: text("permission_document_url"),
+	isOriginalContent: boolean("is_original_content").notNull().default(false),
+	isFanmade: boolean("is_fanmade").notNull().default(false),
+	requiresAttribution: boolean("requires_attribution").notNull().default(false),
+	attributionText: text("attribution_text"),
+	createdAt: timestamp("created_at").notNull().defaultNow(),
+	updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+export const season = pgTable("season", {
+	id: text("id").primaryKey(),
+	animeId: text("anime_id")
+		.notNull()
+		.references(() => anime.id, { onDelete: "cascade" }),
+	seasonNumber: integer("season_number").notNull(),
+	title: text("title"),
+	description: text("description"),
+	releaseYear: integer("release_year"),
+	status: text("status").notNull().default("draft"),
+	createdAt: timestamp("created_at").notNull().defaultNow(),
+	updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+export const episode = pgTable("episode", {
+	id: text("id").primaryKey(),
+	animeId: text("anime_id")
+		.notNull()
+		.references(() => anime.id, { onDelete: "cascade" }),
+	seasonId: text("season_id")
+		.notNull()
+		.references(() => season.id, { onDelete: "cascade" }),
+	episodeNumber: integer("episode_number").notNull(),
+	episodeCode: text("episode_code").notNull(),
+	title: text("title"),
+	slug: text("slug").notNull().unique(),
+	description: text("description"),
+	durationSeconds: integer("duration_seconds"),
+	thumbnailUrl: text("thumbnail_url"),
+	bunnyVideoId: text("bunny_video_id"),
+	bunnyLibraryId: text("bunny_library_id"),
+	playbackUrl: text("playback_url"),
+	embedUrl: text("embed_url"),
+	status: text("status").notNull().default("draft"),
+	publishedAt: timestamp("published_at"),
+	createdAt: timestamp("created_at").notNull().defaultNow(),
+	updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+export const genre = pgTable("genre", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull(),
+	slug: text("slug").notNull().unique(),
+	createdAt: timestamp("created_at").notNull().defaultNow(),
+	updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+export const animeGenre = pgTable(
+	"anime_genre",
+	{
+		animeId: text("anime_id")
+			.notNull()
+			.references(() => anime.id, { onDelete: "cascade" }),
+		genreId: text("genre_id")
+			.notNull()
+			.references(() => genre.id, { onDelete: "cascade" }),
+	},
+	(t) => [primaryKey({ columns: [t.animeId, t.genreId] })],
+)

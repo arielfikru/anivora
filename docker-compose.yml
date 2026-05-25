@@ -24,6 +24,30 @@ services:
     <<: *common-security
     restart: "no"
 
+  seed:
+    image: anivora:latest
+    command: ["node", "/app/api/seed.mjs"]
+    profiles: ["tools"]
+    read_only: true
+    user: "1000:1000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://anivora:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/anivora
+      REDIS_URL: redis://redis:6379
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+      BUNNY_STREAM_LIBRARY_ID: ${BUNNY_STREAM_LIBRARY_ID:?set BUNNY_STREAM_LIBRARY_ID}
+      BUNNY_STREAM_API_KEY: ${BUNNY_STREAM_API_KEY:?set BUNNY_STREAM_API_KEY}
+      BUNNY_STREAM_CDN_HOSTNAME: ${BUNNY_STREAM_CDN_HOSTNAME:?set BUNNY_STREAM_CDN_HOSTNAME}
+    networks:
+      - backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    <<: *common-security
+    restart: "no"
+
   app:
     build:
       context: .
@@ -31,7 +55,7 @@ services:
       pull: false
     image: anivora:latest
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${APP_PORT:?set APP_PORT}:3000"
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
@@ -44,6 +68,11 @@ services:
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET (openssl rand -hex 32)}
       WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+      BUNNY_STREAM_LIBRARY_ID: ${BUNNY_STREAM_LIBRARY_ID:?set BUNNY_STREAM_LIBRARY_ID}
+      BUNNY_STREAM_API_KEY: ${BUNNY_STREAM_API_KEY:?set BUNNY_STREAM_API_KEY}
+      BUNNY_STREAM_CDN_HOSTNAME: ${BUNNY_STREAM_CDN_HOSTNAME:?set BUNNY_STREAM_CDN_HOSTNAME}
+      BUNNY_STREAM_BASE_URL: ${BUNNY_STREAM_BASE_URL:-https://video.bunnycdn.com}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     networks:

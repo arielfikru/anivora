@@ -7,8 +7,14 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
+# pnpm gates native build scripts (esbuild/lightningcss) behind an approval
+# prompt that exits non-zero in CI. The install itself succeeds; we tolerate
+# the advisory exit, then explicitly build the native deps and assert the
+# store materialised so a genuine install failure still breaks the build.
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-	pnpm install --frozen-lockfile
+	pnpm install --frozen-lockfile; \
+	pnpm rebuild esbuild lightningcss core-js protobufjs; \
+	test -d node_modules/.pnpm
 
 # ─── build ───────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS build
@@ -27,7 +33,11 @@ RUN pnpm --filter @anivora/web run build \
 	&& esbuild apps/api/src/migrate.ts \
 		--bundle --platform=node --target=node22 --format=esm \
 		--packages=external \
-		--outfile=apps/api/dist/migrate.mjs
+		--outfile=apps/api/dist/migrate.mjs \
+	&& esbuild apps/api/src/infrastructure/db/seed.ts \
+		--bundle --platform=node --target=node22 --format=esm \
+		--packages=external \
+		--outfile=apps/api/dist/seed.mjs
 
 # ─── prune ───────────────────────────────────────────────────────────────────
 # pnpm deploy emits a self-contained api/ folder with a flat node_modules
@@ -40,6 +50,7 @@ RUN pnpm deploy --filter=@anivora/api --prod --ignore-scripts --legacy /out/api 
 	&& rm -rf /out/api/src \
 	&& cp apps/api/dist/main.mjs    /out/api/main.mjs \
 	&& cp apps/api/dist/migrate.mjs /out/api/migrate.mjs \
+	&& cp apps/api/dist/seed.mjs    /out/api/seed.mjs \
 	&& cp -r apps/api/drizzle       /out/api/drizzle
 
 # ─── runner ──────────────────────────────────────────────────────────────────
