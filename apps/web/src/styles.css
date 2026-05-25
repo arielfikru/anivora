@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
@@ -63,7 +63,7 @@
 
 @theme inline {
   --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Fraunces', Georgia, ui-serif, serif;
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   --color-anv-bg: var(--anv-bg);
   --color-anv-surface: var(--anv-surface);
   --color-anv-surface-2: var(--anv-surface-2);
