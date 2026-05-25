@@ -180,22 +180,26 @@
     api("getEpisode", { slug: slug }, function (res) {
       var ep = res.episode || {};
       var back = animeSlug ? "#/anime/" + animeSlug : "#/";
-      var base = mp4Base(ep.playbackUrl);
+      // Stream via our origin proxy (/v/<guid>/...) — old TV players fetch
+      // fine from this host but fail talking directly to the b-cdn.net CDN.
+      var guid = ep.bunnyVideoId || "";
+      var base = guid ? (ORIGIN + "/v/" + guid + "/") : "";
       var h = '<a class="btn focusable" href="' + back + '">‹ Kembali</a>' +
               '<a class="btn focusable" href="#/">Beranda</a>' +
               "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
       h += '<div id="vbox"></div><div style="margin:14px 0">';
-      for (var i = 0; i < MP4_RES.length; i++) {
-        h += '<span class="btn focusable" onclick="window.__tvPlay(\'' +
-             esc(base) + "play_" + MP4_RES[i] + ".mp4'" + ')">MP4 ' + MP4_RES[i] + "</span>";
+      if (base) {
+        for (var i = 0; i < MP4_RES.length; i++) {
+          h += '<span class="btn focusable" onclick="window.__tvPlay(\'' +
+               esc(base) + "play_" + MP4_RES[i] + ".mp4'" + ')">MP4 ' + MP4_RES[i] + "</span>";
+        }
       }
-      if (ep.playbackUrl)
-        h += '<span class="btn focusable" onclick="window.__tvPlay(\'' + esc(ep.playbackUrl) + '\')">HLS</span>';
       if (ep.embedUrl)
         h += '<span class="btn focusable" onclick="window.__tvPlay(\'' + esc(ep.embedUrl) + '\',1)">Embed</span>';
       h += "</div><pre id=\"vdbg\" style=\"background:#111;color:#9ae6b4;padding:12px;font-size:13px;white-space:pre-wrap;min-height:40px\"></pre>";
       app.innerHTML = h; collect();
       if (base) window.__tvPlay(base + "play_" + MP4_RES[0] + ".mp4");
+      else app.innerHTML += '<div class="muted">Video belum tersedia.</div>';
     }, showErr);
   }
 
