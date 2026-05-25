@@ -137,42 +137,29 @@
     }, showErr);
   }
 
-  /* Old TVs lack native HLS, so prefer Bunny's progressive MP4 renditions
-     (MP4 Fallback). Diagnostics are shown on screen since the TV has no
-     devtools. Manual resolution/embed buttons let us isolate the cause. */
+  /* Old TVs lack native HLS and cannot stream directly from the CDN, so play
+     Bunny's progressive MP4 renditions through our origin proxy. Step down
+     resolution automatically if a rendition is missing/unplayable. */
   var MP4_RES = ["720p", "480p", "360p", "240p", "1080p"];
-  function mp4Base(playbackUrl) {
-    return playbackUrl ? playbackUrl.replace(/playlist\.m3u8.*$/, "") : "";
-  }
-  function dbg(msg) {
-    var d = document.getElementById("vdbg");
-    if (d) d.innerHTML += esc(msg) + "\n";
-  }
-  function ERRTXT(c) {
-    return ["?", "ABORTED", "NETWORK", "DECODE", "SRC_NOT_SUPPORTED"][c] || ("code " + c);
-  }
-  window.__tvPlay = function (url, embed) {
+
+  window.__tvRes = function (base, i) {
     var box = document.getElementById("vbox");
-    if (embed) {
-      box.innerHTML = '<iframe src="' + esc(url) + '" allowfullscreen ' +
-        'style="width:100%;max-width:1280px;height:520px;border:0;background:#000"></iframe>';
-      dbg("embed: " + url);
-      return;
-    }
     box.innerHTML = '<video id="vid" class="focusable" controls autoplay playsinline ' +
-      'style="width:100%;max-width:1280px;background:#000" src="' + esc(url) + '"></video>';
+      'data-base="' + esc(base) + '" data-i="' + i + '" ' +
+      'onerror="window.__tvNext(this)" ' +
+      'style="width:100%;max-width:1280px;background:#000" ' +
+      'src="' + esc(base) + "play_" + MP4_RES[i] + '.mp4"></video>';
     var v = document.getElementById("vid");
-    dbg("try: " + url);
-    v.addEventListener("loadstart", function () { dbg("loadstart"); });
-    v.addEventListener("loadedmetadata", function () { dbg("metadata ok " + v.videoWidth + "x" + v.videoHeight); });
-    v.addEventListener("canplay", function () { dbg("canplay"); });
-    v.addEventListener("playing", function () { dbg("PLAYING ✓"); });
-    v.addEventListener("stalled", function () { dbg("stalled"); });
-    v.addEventListener("error", function () {
-      var e = v.error || {};
-      dbg("ERROR " + ERRTXT(e.code) + " netState=" + v.networkState);
-    });
-    try { v.play(); } catch (e) { dbg("play() threw: " + e); }
+    try { v.play(); } catch (e) {}
+  };
+  window.__tvNext = function (v) {
+    var i = parseInt(v.getAttribute("data-i"), 10) + 1;
+    if (i < MP4_RES.length) window.__tvRes(v.getAttribute("data-base"), i);
+  };
+  window.__tvEmbed = function (url) {
+    document.getElementById("vbox").innerHTML =
+      '<iframe src="' + esc(url) + '" allowfullscreen ' +
+      'style="width:100%;max-width:1280px;height:520px;border:0;background:#000"></iframe>';
   };
 
   function viewWatch(slug, animeSlug) {
@@ -189,16 +176,17 @@
               "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
       h += '<div id="vbox"></div><div style="margin:14px 0">';
       if (base) {
+        h += '<span class="muted" style="margin-right:8px">Kualitas:</span>';
         for (var i = 0; i < MP4_RES.length; i++) {
-          h += '<span class="btn focusable" onclick="window.__tvPlay(\'' +
-               esc(base) + "play_" + MP4_RES[i] + ".mp4'" + ')">MP4 ' + MP4_RES[i] + "</span>";
+          h += '<span class="btn focusable" onclick="window.__tvRes(\'' +
+               esc(base) + "'," + i + ')">' + MP4_RES[i] + "</span>";
         }
       }
       if (ep.embedUrl)
-        h += '<span class="btn focusable" onclick="window.__tvPlay(\'' + esc(ep.embedUrl) + '\',1)">Embed</span>';
-      h += "</div><pre id=\"vdbg\" style=\"background:#111;color:#9ae6b4;padding:12px;font-size:13px;white-space:pre-wrap;min-height:40px\"></pre>";
+        h += '<span class="btn focusable" onclick="window.__tvEmbed(\'' + esc(ep.embedUrl) + '\')">Embed</span>';
+      h += "</div>";
       app.innerHTML = h; collect();
-      if (base) window.__tvPlay(base + "play_" + MP4_RES[0] + ".mp4");
+      if (base) window.__tvRes(base, 0);
       else app.innerHTML += '<div class="muted">Video belum tersedia.</div>';
     }, showErr);
   }
