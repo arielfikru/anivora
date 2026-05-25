@@ -7,6 +7,7 @@ import {
 	createEpisodeUploadSchema,
 	deleteEpisodeSchema,
 	listEpisodesSchema,
+	setSeasonEpisodesStatusSchema,
 	syncEpisodeStatusSchema,
 	updateEpisodeSchema,
 } from "../orpc/schemas.ts"
@@ -59,6 +60,12 @@ export function buildEpisodeRouter(useCases: UseCases["episode"]) {
 			.input(syncEpisodeStatusSchema)
 			.handler(({ input, context }) =>
 				useCases.syncStatus(input, toAuthedContext(context)),
+			),
+
+		setSeasonEpisodesStatus: adminProcedure
+			.input(setSeasonEpisodesStatusSchema)
+			.handler(({ input, context }) =>
+				useCases.setSeasonStatus(input, toAuthedContext(context)),
 			),
 	}
 }

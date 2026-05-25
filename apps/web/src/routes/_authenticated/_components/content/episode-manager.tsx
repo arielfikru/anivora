@@ -1,4 +1,9 @@
-import { IconPlaylistAdd, IconPlus } from "@tabler/icons-react"
+import {
+	IconEye,
+	IconEyeOff,
+	IconPlaylistAdd,
+	IconPlus,
+} from "@tabler/icons-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import * as React from "react"
 import { toast } from "sonner"
@@ -49,14 +54,26 @@ export function EpisodeManager() {
 	})
 	const episodes = (data?.episodes ?? []) as EpisodeRow[]
 
+	const invalidateEpisodes = () =>
+		queryClient.invalidateQueries({
+			queryKey: orpc.admin.listEpisodes.key({ input: { seasonId } }),
+		})
+
 	const deleteEpisode = useMutation({
 		...orpc.admin.deleteEpisode.mutationOptions(),
 		onSuccess: () => {
-			queryClient.invalidateQueries({
-				queryKey: orpc.admin.listEpisodes.key({ input: { seasonId } }),
-			})
+			invalidateEpisodes()
 			setSheet({ kind: "none" })
 			toast.success("Episode deleted")
+		},
+		onError: (e) => toast.error(extractErrorMessage(e)),
+	})
+
+	const setSeasonStatus = useMutation({
+		...orpc.admin.setSeasonEpisodesStatus.mutationOptions(),
+		onSuccess: (res) => {
+			invalidateEpisodes()
+			toast.success(`${res.updated} episode diperbarui`)
 		},
 		onError: (e) => toast.error(extractErrorMessage(e)),
 	})
@@ -98,6 +115,26 @@ export function EpisodeManager() {
 				>
 					<IconPlaylistAdd className="size-4" />
 					Bulk Add
+				</Button>
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={!seasonId || !episodes.length || setSeasonStatus.isPending}
+					onClick={() =>
+						setSeasonStatus.mutate({ seasonId, status: "published" })
+					}
+				>
+					<IconEye className="size-4" />
+					Publish All
+				</Button>
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={!seasonId || !episodes.length || setSeasonStatus.isPending}
+					onClick={() => setSeasonStatus.mutate({ seasonId, status: "hidden" })}
+				>
+					<IconEyeOff className="size-4" />
+					Hide All
 				</Button>
 			</div>
 
