@@ -93,7 +93,15 @@
     else if (k === 39) { move(1); e.preventDefault(); }       // right
     else if (k === 38) { move(-3); e.preventDefault(); }      // up (grid step)
     else if (k === 40) { move(3); e.preventDefault(); }       // down
-    else if (k === 13) { if (items[cur]) items[cur].click(); e.preventDefault(); } // OK
+    else if (k === 13) {                                       // OK
+      var el = items[cur];
+      // On old TVs (Tizen 2.x / webOS 2-3 / Opera TV) fullscreen is only
+      // granted from a real key press, so the player goes fullscreen here
+      // rather than on autoplay. OK on the <video> = fullscreen.
+      if (el && el.tagName === "VIDEO") { goFullscreen(el); }
+      else if (el) { el.click(); }
+      e.preventDefault();
+    }
     else if (k === 8 || k === 461 || k === 10009) {           // back (browser/webOS/Tizen)
       if (location.hash && location.hash !== "#/") { history.back(); e.preventDefault(); }
     }
@@ -144,6 +152,18 @@
      resolution automatically if a rendition is missing/unplayable. */
   var MP4_RES = ["720p", "480p", "360p", "240p", "1080p"];
 
+  // Request native fullscreen on the player. Old TV WebKit exposes
+  // webkitEnterFullscreen on the <video> itself; newer engines use the
+  // element Fullscreen API. Try every known spelling, swallow failures.
+  function goFullscreen(v) {
+    try {
+      if (v.webkitEnterFullscreen) { v.webkitEnterFullscreen(); return; }
+      var fn = v.requestFullscreen || v.webkitRequestFullscreen ||
+               v.mozRequestFullScreen || v.msRequestFullscreen;
+      if (fn) fn.call(v);
+    } catch (e) {}
+  }
+
   window.__tvRes = function (base, i) {
     var box = document.getElementById("vbox");
     box.innerHTML = '<video id="vid" class="focusable" controls autoplay playsinline ' +
@@ -153,6 +173,13 @@
       'src="' + esc(base) + "play_" + MP4_RES[i] + '.mp4"></video>';
     var v = document.getElementById("vid");
     try { v.play(); } catch (e) {}
+    // Enter fullscreen once playback actually starts (TVs reject the call on
+    // a not-yet-ready element). Fall back to a direct attempt if no event.
+    var fired = false;
+    v.addEventListener("playing", function () {
+      if (fired) return; fired = true; goFullscreen(v);
+    });
+    setTimeout(function () { if (!fired) { fired = true; goFullscreen(v); } }, 800);
   };
   window.__tvNext = function (v) {
     var i = parseInt(v.getAttribute("data-i"), 10) + 1;
@@ -212,10 +239,7 @@
         var prevHash = watchHash(sib.prev, animeSlug);
         window.__tvNextHash = watchHash(sib.next, animeSlug);
 
-        var h = '<a class="btn focusable" href="' + back + '">‹ Kembali</a>' +
-                '<a class="btn focusable" href="#/">Beranda</a>';
-        h += "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
-        h += '<div id="vbox"></div>';
+        var h = '<div id="vbox"></div>';
         // Episode nav, directly under the player.
         h += '<div style="margin:14px 0">';
         if (prevHash)
@@ -234,6 +258,9 @@
         if (ep.embedUrl)
           h += '<span class="btn focusable" onclick="window.__tvEmbed(\'' + esc(ep.embedUrl) + '\')">Embed</span>';
         h += "</div>";
+        h += '<a class="btn focusable" href="' + back + '">‹ Kembali</a>' +
+                '<a class="btn focusable" href="#/">Beranda</a>';
+        h += "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
         app.innerHTML = h; collect();
         if (base) window.__tvRes(base, 0);
         else app.innerHTML += '<div class="muted">Video belum tersedia.</div>';
