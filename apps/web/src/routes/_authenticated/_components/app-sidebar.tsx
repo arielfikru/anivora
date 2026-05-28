@@ -1,12 +1,9 @@
 import {
 	IconActivity,
 	IconDashboard,
-	IconDatabase,
 	IconDeviceTv,
-	IconFileWord,
 	IconHelp,
 	IconMovie,
-	IconReport,
 	IconSearch,
 	IconSettings,
 	IconUpload,
@@ -24,16 +21,9 @@ import {
 import { useIsAdmin } from "#/routes/_public/auth/_hooks/use-is-admin"
 import { useSession } from "#/routes/_public/auth/_hooks/use-session"
 import { LangSwitcher } from "./lang-switcher"
-import { NavDocuments } from "./nav-documents"
 import { NavMain } from "./nav-main"
 import { NavSecondary } from "./nav-secondary"
 import { NavUser } from "./nav-user"
-
-const documents = [
-	{ name: "Data Library", url: "#", icon: IconDatabase },
-	{ name: "Reports", url: "#", icon: IconReport },
-	{ name: "Word Assistant", url: "#", icon: IconFileWord },
-]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 	const session = useSession()
@@ -70,7 +60,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 			<SidebarHeader />
 			<SidebarContent>
 				<NavMain items={navMain} />
-				<NavDocuments items={documents} />
 				<NavSecondary items={navSecondary} className="mt-auto" />
 			</SidebarContent>
 			<SidebarFooter>

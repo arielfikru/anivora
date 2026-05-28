@@ -1,10 +1,11 @@
 import type { Anime, PublicEpisode, Season } from "@anivora/api"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
-import { Play, Plus } from "lucide-react"
+import { Play } from "lucide-react"
 import { Suspense, useState } from "react"
 import { ContentRow } from "#/components/catalog/content-row.tsx"
 import { CoverImage } from "#/components/catalog/cover-image.tsx"
+import { FavoriteButton } from "#/components/catalog/favorite-button.tsx"
 import { ErrorMessage, PageSkeleton } from "#/components/catalog/feedback.tsx"
 import { metaLine, ratingLabel } from "#/components/catalog/format.ts"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs"
@@ -116,13 +117,7 @@ function DetailHero({
 							<Play className="size-5 fill-current" /> Putar Episode 1
 						</Link>
 					) : null}
-					<button
-						type="button"
-						data-focusable
-						className="inline-flex h-12 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-7 font-semibold text-anv-text outline-none transition hover:bg-white/20 focus-visible:scale-105"
-					>
-						<Plus className="size-5" /> Daftar Saya
-					</button>
+					<FavoriteButton anime={anime} />
 				</div>
 			</div>
 		</section>
