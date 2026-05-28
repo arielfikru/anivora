@@ -10,6 +10,8 @@ export interface AnimeRepository {
 	listAll(): Promise<AnimeListItem[]>
 	listPublished(filters: AnimeListFilters): Promise<AnimeListItem[]>
 	searchPublished(query: string, limit: number): Promise<AnimeListItem[]>
+	/** Published anime sharing ≥1 genre with the given anime, excluding it. */
+	listRelated(animeId: string, limit: number): Promise<AnimeListItem[]>
 	findBySlug(slug: string): Promise<Anime | null>
 	findById(id: string): Promise<Anime | null>
 	slugExists(slug: string): Promise<boolean>

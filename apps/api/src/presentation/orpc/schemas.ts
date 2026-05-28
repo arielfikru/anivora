@@ -113,6 +113,10 @@ export const searchAnimeSchema = z.object({
 })
 
 export const animeSlugSchema = z.object({ slug: z.string().min(1) })
+export const relatedAnimeSchema = z.object({
+	slug: z.string().min(1),
+	limit: z.number().int().min(1).max(24).default(12),
+})
 export const episodeSlugSchema = z.object({ slug: z.string().min(1) })
 
 export const getAnimeAdminSchema = z.object({ id })

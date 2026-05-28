@@ -16,6 +16,7 @@ import { makeGetSession } from "./auth/get-session.ts"
 import { makeGetAnime } from "./catalog/get-anime.ts"
 import { makeGetAnimeAdmin } from "./catalog/get-anime-admin.ts"
 import { makeGetEpisode } from "./catalog/get-episode.ts"
+import { makeGetRelatedAnime } from "./catalog/get-related-anime.ts"
 import { makeListAllAnime } from "./catalog/list-all-anime.ts"
 import { makeListAnime } from "./catalog/list-anime.ts"
 import { makeListGenres } from "./catalog/list-genres.ts"
@@ -67,6 +68,7 @@ function buildCatalog(deps: Dependencies) {
 			seasonRepo: deps.seasonRepo,
 			episodeRepo: deps.episodeRepo,
 		}),
+		getRelatedAnime: makeGetRelatedAnime({ animeRepo: deps.animeRepo }),
 		getEpisode: makeGetEpisode({ episodeRepo: deps.episodeRepo }),
 		listGenres: makeListGenres({ genreRepo: deps.genreRepo }),
 	}
