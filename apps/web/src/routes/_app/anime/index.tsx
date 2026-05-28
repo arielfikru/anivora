@@ -4,6 +4,7 @@ import { Suspense } from "react"
 import { ErrorMessage, GridSkeleton } from "#/components/catalog/feedback.tsx"
 import { MediaGrid } from "#/components/catalog/media-grid.tsx"
 import { orpc } from "#/libs/orpc/client"
+import { useSeo } from "#/libs/seo"
 
 export const Route = createFileRoute("/_app/anime/")({
 	component: CatalogPage,
@@ -11,6 +12,10 @@ export const Route = createFileRoute("/_app/anime/")({
 })
 
 function CatalogPage() {
+	useSeo({
+		title: "Jelajah Anime",
+		description: "Katalog lengkap anime di Anivora.",
+	})
 	return (
 		<div className="space-y-4 pt-8">
 			<h1 className="display-title px-4 text-3xl font-bold text-anv-text lg:px-10">

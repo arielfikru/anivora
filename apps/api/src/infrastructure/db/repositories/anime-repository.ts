@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, sql } from "drizzle-orm"
+import { and, desc, eq, ilike, inArray, ne, sql } from "drizzle-orm"
 
 import type { AnimeListFilters, AnimeListItem } from "#/domain/catalog/anime.ts"
 import type { AnimeRepository } from "#/domain/catalog/anime-repository.ts"
@@ -68,6 +68,34 @@ export function createAnimeRepository(db: Db): AnimeRepository {
 				.orderBy(desc(schema.anime.createdAt))
 				.limit(filters.limit)
 				.offset(filters.offset)
+		},
+
+		async listRelated(animeId, limit): Promise<AnimeListItem[]> {
+			// Genres of the target anime.
+			const targetGenres = db
+				.select({ genreId: schema.animeGenre.genreId })
+				.from(schema.animeGenre)
+				.where(eq(schema.animeGenre.animeId, animeId))
+			// Other published anime that share at least one of those genres,
+			// ranked by how many genres they share, then recency.
+			const sharedGenres = sql<number>`count(${schema.animeGenre.genreId})`
+			return db
+				.select(listColumns)
+				.from(schema.anime)
+				.innerJoin(
+					schema.animeGenre,
+					eq(schema.animeGenre.animeId, schema.anime.id),
+				)
+				.where(
+					and(
+						eq(schema.anime.status, "published"),
+						ne(schema.anime.id, animeId),
+						inArray(schema.animeGenre.genreId, targetGenres),
+					),
+				)
+				.groupBy(schema.anime.id)
+				.orderBy(desc(sharedGenres), desc(schema.anime.createdAt))
+				.limit(limit)
 		},
 
 		async searchPublished(query, limit): Promise<AnimeListItem[]> {

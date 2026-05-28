@@ -4,6 +4,7 @@ import {
 	animeSlugSchema,
 	episodeSlugSchema,
 	listAnimeSchema,
+	relatedAnimeSchema,
 	searchAnimeSchema,
 } from "../orpc/schemas.ts"
 
@@ -25,6 +26,12 @@ export function buildCatalogRouter(useCases: UseCases["catalog"]) {
 			.input(animeSlugSchema)
 			.handler(({ input, context }) =>
 				useCases.getAnime(input, toOptionalAuthContext(context)),
+			),
+
+		getRelatedAnime: publicProcedure
+			.input(relatedAnimeSchema)
+			.handler(({ input, context }) =>
+				useCases.getRelatedAnime(input, toOptionalAuthContext(context)),
 			),
 
 		getEpisode: publicProcedure
