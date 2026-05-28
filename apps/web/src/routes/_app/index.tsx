@@ -7,6 +7,7 @@ import { GenrePills } from "#/components/catalog/genre-pills.tsx"
 import { HeroBanner } from "#/components/catalog/hero-banner.tsx"
 import { ErrorMessage, PageSkeleton } from "#/components/catalog/feedback.tsx"
 import { orpc } from "#/libs/orpc/client"
+import { useSeo } from "#/libs/seo"
 
 export const Route = createFileRoute("/_app/")({
 	component: HomePage,
@@ -31,6 +32,8 @@ function HomeContent() {
 
 	const anime = data.anime
 	const featured = anime[0]
+
+	useSeo({ image: featured?.bannerImageUrl ?? featured?.coverImageUrl })
 
 	return (
 		<div className="space-y-10">

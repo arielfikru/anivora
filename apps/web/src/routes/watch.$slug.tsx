@@ -19,6 +19,7 @@ import {
 	removeWatch,
 } from "#/libs/continue-watching"
 import { orpc } from "#/libs/orpc/client"
+import { useSeo } from "#/libs/seo"
 
 export const Route = createFileRoute("/watch/$slug")({
 	validateSearch: z.object({ anime: z.string().optional() }),
@@ -113,6 +114,14 @@ function WatchContent({
 			episode.title,
 		],
 	)
+
+	useSeo({
+		title:
+			metaLine([nav.animeTitle, episode.episodeCode, episode.title]) ||
+			"Menonton",
+		description: episode.description,
+		image: episode.thumbnailUrl,
+	})
 
 	const goNext = useCallback(() => {
 		if (!nav.next) return

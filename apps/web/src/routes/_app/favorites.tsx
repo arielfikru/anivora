@@ -2,12 +2,14 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Heart } from "lucide-react"
 import { MediaGrid } from "#/components/catalog/media-grid.tsx"
 import { useFavorites } from "#/libs/favorites"
+import { useSeo } from "#/libs/seo"
 
 export const Route = createFileRoute("/_app/favorites")({
 	component: FavoritesPage,
 })
 
 function FavoritesPage() {
+	useSeo({ title: "Daftar Saya", description: "Anime tersimpan kamu." })
 	const favorites = useFavorites()
 
 	return (
