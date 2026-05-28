@@ -163,7 +163,7 @@ const openApiHandler = new OpenAPIHandler(router, {
 			schemaConverters: [new ZodToJsonSchemaConverter()],
 			specGenerateOptions: {
 				info: {
-					title: "SaaS Boilerplate API",
+					title: "Anivora API",
 					version: "1.0.0",
 				},
 				security: [{ bearerAuth: [] }],
