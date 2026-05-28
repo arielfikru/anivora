@@ -14,6 +14,7 @@ import { CoverImage } from "#/components/catalog/cover-image.tsx"
 import { ErrorMessage } from "#/components/catalog/feedback.tsx"
 import { metaLine } from "#/components/catalog/format.ts"
 import { orpc } from "#/libs/orpc/client"
+import { useSeo } from "#/libs/seo"
 
 export const Route = createFileRoute("/watch/$slug")({
 	validateSearch: z.object({ anime: z.string().optional() }),
@@ -55,6 +56,14 @@ function WatchContent({
 	const nav = useEpisodeNav(animeSlug, slug)
 	const navigate = useNavigate()
 	const playerRef = useRef<HTMLDivElement>(null)
+
+	useSeo({
+		title:
+			metaLine([nav.animeTitle, episode.episodeCode, episode.title]) ||
+			"Menonton",
+		description: episode.description,
+		image: episode.thumbnailUrl,
+	})
 
 	const goNext = useCallback(() => {
 		if (!nav.next) return

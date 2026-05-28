@@ -8,6 +8,7 @@ import { ErrorMessage, PageSkeleton } from "#/components/catalog/feedback.tsx"
 import { metaLine, ratingLabel } from "#/components/catalog/format.ts"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs"
 import { orpc } from "#/libs/orpc/client"
+import { useSeo } from "#/libs/seo"
 import { EpisodeList } from "./_components/episode-list.tsx"
 
 type TSeasonWithEpisodes = Season & { episodes: PublicEpisode[] }
@@ -36,6 +37,12 @@ function DetailContent({ slug }: { slug: string }) {
 	)
 	const { anime, seasons } = data
 	const firstEpisode = seasons.flatMap((s) => s.episodes)[0]
+
+	useSeo({
+		title: anime.title,
+		description: anime.description,
+		image: anime.bannerImageUrl ?? anime.coverImageUrl,
+	})
 
 	return (
 		<div>
