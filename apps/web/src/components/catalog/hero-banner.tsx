@@ -1,7 +1,8 @@
 import type { AnimeListItem } from "@anivora/api"
 import { Link } from "@tanstack/react-router"
-import { Play, Plus } from "lucide-react"
+import { Play } from "lucide-react"
 import { CoverImage } from "./cover-image.tsx"
+import { FavoriteButton } from "./favorite-button.tsx"
 import { metaLine, ratingLabel } from "./format.ts"
 
 interface IHeroBannerProps {
@@ -52,14 +53,7 @@ export function HeroBanner({ anime, description, isNew }: IHeroBannerProps) {
 					>
 						<Play className="size-5 fill-current" /> Putar Sekarang
 					</Link>
-					<Link
-						to="/anime/$slug"
-						params={{ slug: anime.slug }}
-						data-focusable
-						className="inline-flex h-12 items-center gap-2 rounded-lg border border-white/30 bg-white/10 px-7 text-base font-semibold text-anv-text outline-none backdrop-blur transition hover:bg-white/20 focus-visible:scale-105"
-					>
-						<Plus className="size-5" /> Daftar Saya
-					</Link>
+					<FavoriteButton anime={anime} className="text-base" />
 				</div>
 			</div>
 		</section>
