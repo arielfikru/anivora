@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { MediaGrid } from "#/components/catalog/media-grid.tsx"
 import { Input } from "#/components/ui/input"
 import { orpc } from "#/libs/orpc/client"
+import { useSeo } from "#/libs/seo"
 
 export const Route = createFileRoute("/_app/search")({
 	component: SearchPage,
@@ -20,6 +21,7 @@ function useDebounced<T>(value: T, delay: number): T {
 }
 
 function SearchPage() {
+	useSeo({ title: "Cari Anime", description: "Cari anime di Anivora." })
 	const [query, setQuery] = useState("")
 	const debounced = useDebounced(query.trim(), 350)
 

@@ -13,7 +13,13 @@ import { z } from "zod"
 import { CoverImage } from "#/components/catalog/cover-image.tsx"
 import { ErrorMessage } from "#/components/catalog/feedback.tsx"
 import { metaLine } from "#/components/catalog/format.ts"
+import {
+	getWatchEntry,
+	recordProgress,
+	removeWatch,
+} from "#/libs/continue-watching"
 import { orpc } from "#/libs/orpc/client"
+import { useSeo } from "#/libs/seo"
 
 export const Route = createFileRoute("/watch/$slug")({
 	validateSearch: z.object({ anime: z.string().optional() }),
@@ -55,6 +61,67 @@ function WatchContent({
 	const nav = useEpisodeNav(animeSlug, slug)
 	const navigate = useNavigate()
 	const playerRef = useRef<HTMLDivElement>(null)
+	const cover = nav.animeCover ?? episode.thumbnailUrl ?? null
+
+	// Record this episode as the resume point for the anime. Re-runs when the
+	// anime metadata (title/cover) resolves; preserves stored progress if we
+	// re-open the same episode.
+	useEffect(() => {
+		if (!animeSlug) return
+		const existing = getWatchEntry(animeSlug)
+		recordProgress({
+			animeSlug,
+			animeTitle: nav.animeTitle,
+			coverImageUrl: cover,
+			episodeSlug: slug,
+			episodeCode: episode.episodeCode ?? null,
+			episodeTitle: episode.title ?? null,
+			progress:
+				existing && existing.episodeSlug === slug ? existing.progress : 0,
+		})
+	}, [
+		animeSlug,
+		slug,
+		nav.animeTitle,
+		cover,
+		episode.episodeCode,
+		episode.title,
+	])
+
+	const lastWrite = useRef(0)
+	const onProgress = useCallback(
+		(seconds: number, duration: number) => {
+			if (!animeSlug || duration <= 0) return
+			const now = Date.now()
+			if (now - lastWrite.current < 4000) return
+			lastWrite.current = now
+			recordProgress({
+				animeSlug,
+				animeTitle: nav.animeTitle,
+				coverImageUrl: cover,
+				episodeSlug: slug,
+				episodeCode: episode.episodeCode ?? null,
+				episodeTitle: episode.title ?? null,
+				progress: Math.min(1, seconds / duration),
+			})
+		},
+		[
+			animeSlug,
+			slug,
+			nav.animeTitle,
+			cover,
+			episode.episodeCode,
+			episode.title,
+		],
+	)
+
+	useSeo({
+		title:
+			metaLine([nav.animeTitle, episode.episodeCode, episode.title]) ||
+			"Menonton",
+		description: episode.description,
+		image: episode.thumbnailUrl,
+	})
 
 	const goNext = useCallback(() => {
 		if (!nav.next) return
@@ -64,6 +131,13 @@ function WatchContent({
 			search: { anime: animeSlug },
 		})
 	}, [nav.next, animeSlug, navigate])
+
+	// On finish: advance to the next episode (which becomes the new resume
+	// point), or drop the anime from Continue Watching when the series ends.
+	const onEnded = useCallback(() => {
+		if (nav.next) goNext()
+		else if (animeSlug) removeWatch(animeSlug)
+	}, [nav.next, goNext, animeSlug])
 
 	const goFullscreen = useCallback(() => {
 		playerRef.current?.requestFullscreen?.().catch(() => {})
@@ -77,7 +151,12 @@ function WatchContent({
 				title={nav.animeTitle}
 			/>
 			<div className="flex flex-1 items-center justify-center px-4 py-2 lg:px-10">
-				<Player episode={episode} onEnded={goNext} containerRef={playerRef} />
+				<Player
+					episode={episode}
+					onEnded={onEnded}
+					onProgress={onProgress}
+					containerRef={playerRef}
+				/>
 			</div>
 			<WatchFooter
 				animeSlug={animeSlug}
@@ -100,6 +179,7 @@ function useEpisodeNav(animeSlug: string | undefined, currentSlug: string) {
 	const idx = episodes.findIndex((e) => e.slug === currentSlug)
 	return {
 		animeTitle: data?.anime.title ?? null,
+		animeCover: data?.anime.coverImageUrl ?? null,
 		prev: idx > 0 ? episodes[idx - 1] : null,
 		next: idx >= 0 && idx < episodes.length - 1 ? episodes[idx + 1] : null,
 	}
@@ -146,31 +226,53 @@ function BackButton({ animeSlug }: { animeSlug?: string }) {
 }
 
 /**
- * Bunny's embed implements the player.js protocol over postMessage. Register an
- * `ended` listener on load; when the iframe reports playback finished, advance.
+ * Bunny's embed implements the player.js protocol over postMessage. Register
+ * `ended` + `timeupdate` listeners on load; advance on finish and report
+ * playback fraction for the resume bar. Payload shape is read defensively
+ * because player.js implementations vary (value vs data).
  */
-function useBunnyEnded(
+function useBunnyPlayer(
 	ref: React.RefObject<HTMLIFrameElement | null>,
 	onEnded: () => void,
+	onProgress: (seconds: number, duration: number) => void,
 ) {
 	useEffect(() => {
 		const win = ref.current?.contentWindow
-		const register = () =>
-			win?.postMessage(
-				JSON.stringify({
-					context: "player.js",
-					version: "1.0",
-					method: "addEventListener",
-					value: "ended",
-					listener: "anv-ended",
-				}),
-				"*",
-			)
+		const register = () => {
+			for (const value of ["ended", "timeupdate"]) {
+				win?.postMessage(
+					JSON.stringify({
+						context: "player.js",
+						version: "1.0",
+						method: "addEventListener",
+						value,
+						listener: `anv-${value}`,
+					}),
+					"*",
+				)
+			}
+		}
 		const onMessage = (e: MessageEvent) => {
 			if (typeof e.data !== "string") return
 			try {
-				const msg = JSON.parse(e.data) as { context?: string; event?: string }
-				if (msg.context === "player.js" && msg.event === "ended") onEnded()
+				const msg = JSON.parse(e.data) as {
+					context?: string
+					event?: string
+					value?: { seconds?: number; duration?: number }
+					data?: { seconds?: number; duration?: number }
+				}
+				if (msg.context !== "player.js") return
+				if (msg.event === "ended") {
+					onEnded()
+				} else if (msg.event === "timeupdate") {
+					const p = msg.value ?? msg.data
+					if (
+						typeof p?.seconds === "number" &&
+						typeof p?.duration === "number"
+					) {
+						onProgress(p.seconds, p.duration)
+					}
+				}
 			} catch {}
 		}
 		window.addEventListener("message", onMessage)
@@ -179,7 +281,7 @@ function useBunnyEnded(
 			window.removeEventListener("message", onMessage)
 			clearTimeout(timer)
 		}
-	}, [ref, onEnded])
+	}, [ref, onEnded, onProgress])
 }
 
 function withAutoplay(src: string): string {
@@ -189,14 +291,16 @@ function withAutoplay(src: string): string {
 function Player({
 	episode,
 	onEnded,
+	onProgress,
 	containerRef,
 }: {
 	episode: Episode
 	onEnded: () => void
+	onProgress: (seconds: number, duration: number) => void
 	containerRef: React.RefObject<HTMLDivElement | null>
 }) {
 	const iframeRef = useRef<HTMLIFrameElement>(null)
-	useBunnyEnded(iframeRef, onEnded)
+	useBunnyPlayer(iframeRef, onEnded, onProgress)
 	const src = episode.embedUrl ?? episode.playbackUrl
 	if (src) {
 		return (

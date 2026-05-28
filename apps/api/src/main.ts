@@ -31,6 +31,7 @@ import { createSeasonRepository } from "#/infrastructure/db/repositories/season-
 import { createUserRepository } from "#/infrastructure/db/repositories/user-repository.ts"
 import { registerBunnyRoutes } from "#/presentation/http/bunny-routes.ts"
 import { registerImageRoutes } from "#/presentation/http/image-routes.ts"
+import { registerSitemapRoutes } from "#/presentation/http/sitemap-routes.ts"
 import { registerVideoProxyRoutes } from "#/presentation/http/video-proxy-routes.ts"
 import { startEpisodePoller } from "#/presentation/http/episode-poller.ts"
 import { buildRouter } from "#/presentation/routers/index.ts"
@@ -135,6 +136,8 @@ registerVideoProxyRoutes(app, {
 	referer: WEB_ORIGIN,
 })
 
+registerSitemapRoutes(app, { animeRepo, webOrigin: WEB_ORIGIN })
+
 const buildContext = async (headers: Headers) => {
 	const session = await auth.getSession(headers)
 	return { headers, session, useCases }
@@ -163,7 +166,7 @@ const openApiHandler = new OpenAPIHandler(router, {
 			schemaConverters: [new ZodToJsonSchemaConverter()],
 			specGenerateOptions: {
 				info: {
-					title: "SaaS Boilerplate API",
+					title: "Anivora API",
 					version: "1.0.0",
 				},
 				security: [{ bearerAuth: [] }],

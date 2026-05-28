@@ -5,6 +5,7 @@ import { ErrorMessage, GridSkeleton } from "#/components/catalog/feedback.tsx"
 import { GenrePills } from "#/components/catalog/genre-pills.tsx"
 import { MediaGrid } from "#/components/catalog/media-grid.tsx"
 import { orpc } from "#/libs/orpc/client"
+import { useSeo } from "#/libs/seo"
 
 export const Route = createFileRoute("/_app/genres/$slug")({
 	component: GenrePage,
@@ -32,6 +33,13 @@ function GenreContent({ slug }: { slug: string }) {
 		orpc.catalog.listGenres.queryOptions(),
 	)
 	const active = genreData.genres.find((g) => g.slug === slug)
+
+	useSeo({
+		title: active?.name ? `Genre: ${active.name}` : "Genre",
+		description: active?.name
+			? `Anime bergenre ${active.name} di Anivora.`
+			: undefined,
+	})
 
 	return (
 		<>
