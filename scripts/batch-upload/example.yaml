@@ -1,0 +1,25 @@
+# Example metadata for the Anivora batch upload tool.
+# File paths are relative to this metadata file's directory.
+
+anime:
+  title: "Contoh Anime Lokal"
+  description: "Sinopsis singkat anime."
+  status: published          # draft | published | hidden | archived
+  contentRating: teen        # general | teen | mature | adult
+  studioName: "Studio Lokal"
+  creatorName: "Kreator"
+  releaseYear: 2026
+  isFanmade: true
+  isOriginalContent: false
+
+seasons:
+  - seasonNumber: 1
+    title: "Season 1"
+    status: published
+    episodes:
+      - episodeNumber: 1
+        title: "Episode Pertama"
+        file: "videos/ep01.mp4"
+      - episodeNumber: 2
+        title: "Episode Kedua"
+        file: "videos/ep02.mp4"
