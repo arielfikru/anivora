@@ -9,10 +9,10 @@
   html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0c; color: #f4f4f5;
     font-family: Arial, Helvetica, sans-serif; }
   a { color: inherit; text-decoration: none; }
-  #app { padding: 32px; }
-  h1 { font-size: 28px; margin: 0 0 20px; }
+  body { padding-top: 64px; }
+  #app { padding: 20px 32px 48px; }
+  h1 { font-size: 26px; margin: 0 0 16px; }
   h2 { font-size: 20px; margin: 24px 0 12px; color: #d4d4d8; }
-  .bar { display: block; margin-bottom: 16px; }
   .muted { color: #a1a1aa; font-size: 14px; }
   .grid { font-size: 0; }
   .card { display: inline-block; width: 200px; vertical-align: top; margin: 0 16px 24px 0;
@@ -25,15 +25,61 @@
   .btn { display: inline-block; background: #18181b; border: 3px solid transparent; border-radius: 8px;
     padding: 12px 24px; margin: 0 12px 12px 0; cursor: pointer; outline: none; font-size: 18px; }
   .btn.red { background: #e23636; }
-  .focusable:focus, .focused { border-color: #e23636 !important; background: #27272a; }
-  .card.focused img { opacity: .85; }
+  /* Subtle focus transition — short + cheap so weak TV CPUs don't jank; engines
+     that ignore `transition` just snap instantly (no visual breakage). */
+  .card, .row, .btn, .key, .hbtn {
+    transition: box-shadow .12s ease, border-color .12s ease, background-color .12s ease; }
+  /* Focus: border + background + lift. transform/box-shadow degrade harmlessly
+     on ancient TV WebKit that ignores them. */
+  .focused { border-color: #e23636 !important; background: #27272a;
+    box-shadow: 0 0 0 2px #e23636; }
+  .card.focused { box-shadow: 0 0 0 3px #e23636; }
+  .card.focused img { opacity: .9; }
   video { width: 100%; max-width: 1280px; height: auto; background: #000; display: block; margin: 0 auto; }
   .center { text-align: center; padding-top: 60px; }
   .err { color: #f87171; padding: 16px; white-space: pre-wrap; font-family: monospace; }
+  /* sticky header */
+  #hdr { position: fixed; top: 0; left: 0; right: 0; height: 64px; z-index: 50;
+    background: #111114; border-bottom: 1px solid #27272a; display: block;
+    padding: 0 24px; line-height: 64px; white-space: nowrap; overflow: hidden; }
+  #hdr .crumb { font-size: 18px; font-weight: bold; }
+  #hdr .right { float: right; }
+  #hdr .hbtn { display: inline-block; vertical-align: middle; background: #18181b;
+    border: 3px solid transparent; border-radius: 8px; padding: 6px 16px; margin-left: 10px;
+    font-size: 15px; line-height: 1.2; cursor: pointer; outline: none; }
+  /* spinner */
+  .spin { width: 44px; height: 44px; margin: 80px auto; border: 5px solid #27272a;
+    border-top-color: #e23636; border-radius: 50%; animation: sp 0.9s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  /* virtual keyboard */
+  #kb { margin: 8px 0 4px; }
+  .kbrow { font-size: 0; margin-bottom: 8px; }
+  .key { display: inline-block; width: 56px; height: 56px; line-height: 32px; text-align: center;
+    background: #18181b; border: 3px solid transparent; border-radius: 8px; margin: 0 8px 0 0;
+    padding: 9px 0; font-size: 20px; cursor: pointer; outline: none; vertical-align: top; }
+  .key.wide { width: 150px; }
+  .key.go { background: #e23636; }
+  #sq { font-size: 26px; min-height: 38px; padding: 8px 14px; background: #18181b;
+    border-radius: 8px; margin-bottom: 14px; letter-spacing: 1px; }
+  #sq .cur { color: #e23636; animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .legend { margin-top: 22px; color: #a1a1aa; font-size: 14px; line-height: 2; max-width: 820px; }
+  .legend .k { display: inline-block; background: #27272a; color: #e4e4e7; border-radius: 5px;
+    padding: 2px 9px; margin: 0 4px; font-family: monospace; font-size: 13px; }
+  #toast { position: fixed; left: 50%; top: 90px; z-index: 9999; margin-left: -90px;
+    width: 180px; text-align: center; background: rgba(0,0,0,.82); color: #fff;
+    padding: 10px 0; border-radius: 8px; font-size: 22px; opacity: 0;
+    transition: opacity .2s; pointer-events: none; }
+  #dbg { position: fixed; top: 70px; right: 0; z-index: 9999; max-width: 360px;
+    background: rgba(0,0,0,.85); color: #4ade80; font-family: monospace; font-size: 13px;
+    line-height: 1.4; padding: 8px 10px; border-bottom-left-radius: 8px; pointer-events: none;
+    white-space: pre-wrap; word-break: break-all; }
+  #dbg b { color: #fde047; }
 </style>
 </head>
 <body>
-<div id="app"><div class="center muted">Memuat…</div></div>
+<div id="hdr"></div>
+<div id="app"><div class="spin"></div></div>
 <script>
 /* Anivora TV — ultra-light client for ancient smart-TV browsers (no ES6,
    no Proxy). Talks to the REST/OpenAPI endpoints with XHR; navigates with
@@ -42,6 +88,7 @@
   "use strict";
   var ORIGIN = location.protocol + "//" + location.host;
   var app = document.getElementById("app");
+  var hdr = document.getElementById("hdr");
 
   function api(path, body, ok, fail) {
     var xhr = new XMLHttpRequest();
@@ -65,72 +112,272 @@
   function esc(s) {
     return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
-  function showErr(msg) { app.innerHTML = '<div class="err">' + esc(msg) + "</div>"; }
+  function spinner() { return '<div class="spin"></div>'; }
+  function showErr(msg) { app.innerHTML = '<div class="err">' + esc(msg) + "</div>"; collect(); }
 
-  /* ---- focus / remote navigation ---- */
-  var items = [], cur = 0;
-  function collect() {
-    items = [];
-    var els = app.querySelectorAll(".focusable");
-    for (var i = 0; i < els.length; i++) items.push(els[i]);
-    cur = 0; highlight();
+  /* ---- continue watching (localStorage, best-effort; some old TVs throw) ---- */
+  var RECENT_KEY = "anivora_tv_recent";
+  function loadRecent() {
+    try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]") || []; }
+    catch (e) { return []; }
   }
-  function highlight() {
-    for (var i = 0; i < items.length; i++) {
-      if (i === cur) { items[i].className += " focused"; }
-      else { items[i].className = items[i].className.replace(/ ?focused/g, ""); }
+  function saveRecent(item) {
+    try {
+      var list = loadRecent(), out = [item], i;
+      for (i = 0; i < list.length && out.length < 12; i++) {
+        if (list[i] && list[i].s !== item.s) out.push(list[i]);
+      }
+      localStorage.setItem(RECENT_KEY, JSON.stringify(out));
+    } catch (e) {}
+  }
+
+  /* ---- header / breadcrumb ---- */
+  function setHeader(crumb) {
+    hdr.innerHTML =
+      '<span class="crumb">' + esc(crumb || "Anivora") + "</span>" +
+      '<span class="right">' +
+        '<a class="hbtn focusable" href="#/search">🔍 Cari</a>' +
+        '<a class="hbtn focusable" href="#/">Beranda</a>' +
+        '<a class="hbtn focusable" href="/?pick=1">Ganti Mode</a>' +
+      "</span>";
+  }
+
+  /* ---- debug overlay (open tv.html?debug=1) ---- */
+  var DEBUG = /(?:\?|&)debug=1\b/.test(location.search) || /debug=1/.test(location.hash);
+  if (DEBUG) (function () {
+    var box = document.createElement("div");
+    box.id = "dbg"; document.body.appendChild(box);
+    var lines = [];
+    function log(s) {
+      lines.push(s); if (lines.length > 12) lines.shift();
+      box.innerHTML = "<b>remote debug</b>\n" + lines.join("\n");
     }
-    if (items[cur] && items[cur].scrollIntoView) items[cur].scrollIntoView(false);
+    document.addEventListener("keydown", function (e) {
+      log("key code=" + e.keyCode + " key=" + (e.key || "?") +
+          (e.target && e.target.tagName ? " @" + e.target.tagName : ""));
+    }, true);
+    var moves = 0;
+    document.addEventListener("mousemove", function () {
+      moves++; if (moves === 1 || moves % 20 === 0) log("POINTER mousemove x" + moves + " (cursor mode!)");
+    }, true);
+    document.addEventListener("click", function (e) {
+      log("click @" + (e.target && e.target.tagName) + " (" + e.clientX + "," + e.clientY + ")");
+    }, true);
+  })();
+
+  /* ---- spatial (geometry) focus navigation ----
+     The grid wraps a screen-width-dependent number of columns, so index-based
+     stepping (cur += 3) jumps unpredictably. Instead pick the nearest focusable
+     in the pressed direction by comparing element rect centres. Works for the
+     poster grid, episode rows, header, and the virtual keyboard alike. */
+  var curEl = null;
+  var focusMem = {}; // hash -> index, so returning to a view restores position
+
+  function listFocusables() {
+    var nl = document.querySelectorAll(".focusable"), out = [], i;
+    for (i = 0; i < nl.length; i++) {
+      if (nl[i].offsetWidth || nl[i].offsetHeight) out.push(nl[i]); // skip hidden
+    }
+    return out;
   }
-  function move(d) {
-    if (!items.length) return;
-    cur += d; if (cur < 0) cur = 0; if (cur >= items.length) cur = items.length - 1;
-    highlight();
+  function indexOfEl(el) {
+    var els = listFocusables(), i;
+    for (i = 0; i < els.length; i++) if (els[i] === el) return i;
+    return -1;
   }
+  function ensureVisible(el) {
+    var r = el.getBoundingClientRect();
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    if (r.top < 80) window.scrollBy(0, r.top - 80);
+    else if (r.bottom > vh - 16) window.scrollBy(0, r.bottom - vh + 16);
+  }
+  function setFocus(el) {
+    if (!el) return;
+    if (curEl && curEl !== el) curEl.className = curEl.className.replace(/ ?focused/g, "");
+    curEl = el;
+    if (curEl.className.indexOf("focused") === -1) curEl.className += " focused";
+    ensureVisible(curEl);
+    var i = indexOfEl(curEl); if (i >= 0) focusMem[location.hash || "#/"] = i;
+  }
+  function ctr(el) { var r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+  function moveDir(dir) {
+    if (!curEl) { collect(); return; }
+    var c = ctr(curEl), els = listFocusables(), best = null, bestScore = 1e12, i, t, dx, dy, primary, cross, score;
+    for (i = 0; i < els.length; i++) {
+      if (els[i] === curEl) continue;
+      t = ctr(els[i]); dx = t.x - c.x; dy = t.y - c.y;
+      if (dir === "l") { if (dx >= -2) continue; primary = -dx; cross = Math.abs(dy); }
+      else if (dir === "r") { if (dx <= 2) continue; primary = dx; cross = Math.abs(dy); }
+      else if (dir === "u") { if (dy >= -2) continue; primary = -dy; cross = Math.abs(dx); }
+      else { if (dy <= 2) continue; primary = dy; cross = Math.abs(dx); }
+      score = primary + cross * 2; // weight cross so we keep the same column/row
+      if (score < bestScore) { bestScore = score; best = els[i]; }
+    }
+    if (best) setFocus(best);
+  }
+  function collect() {
+    var els = listFocusables();
+    if (!els.length) { curEl = null; return; }
+    var idx = focusMem[location.hash || "#/"];
+    if (idx == null || idx >= els.length) idx = 0;
+    curEl = null; setFocus(els[idx]);
+  }
+
+  /* ---- transient toast + media-key helpers ---- */
+  function vid() { return document.getElementById("vid"); }
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    if (!t) { t = document.createElement("div"); t.id = "toast"; document.body.appendChild(t); }
+    t.innerHTML = esc(msg); t.style.opacity = "1";
+    clearTimeout(t._h); t._h = setTimeout(function () { t.style.opacity = "0"; }, 1200);
+  }
+  function seekBy(d) {
+    var v = vid(); if (!v) return;
+    var t = (v.currentTime || 0) + d; if (t < 0) t = 0;
+    if (v.duration && t > v.duration) t = v.duration - 1;
+    try { v.currentTime = t; } catch (e) {}
+    toast((d > 0 ? "⏩ +" : "⏪ −") + Math.abs(d) + "s");
+  }
+  function seekPct(p) {
+    var v = vid(); if (!v || !v.duration) return;
+    try { v.currentTime = v.duration * p; } catch (e) {}
+    toast(Math.round(p * 100) + "%");
+  }
+  function cycleRes() {
+    var v = vid(); if (!v) return;
+    var i = (parseInt(v.getAttribute("data-i"), 10) + 1) % MP4_RES.length;
+    window.__tvRes(v.getAttribute("data-base"), i);
+    toast("Kualitas: " + MP4_RES[i]);
+  }
+  function playPause(play) {
+    var v = vid(); if (!v) return;
+    try { if (play) v.play(); else v.pause(); } catch (e) {}
+    toast(play ? "▶" : "⏸");
+  }
+  function gotoEp(hash, emptyMsg) { if (hash) location.hash = hash; else toast(emptyMsg); }
+  function inFullscreen() {
+    var v = vid();
+    return !!(document.fullscreenElement || document.webkitFullscreenElement ||
+              document.webkitCurrentFullScreenElement || (v && v.webkitDisplayingFullscreen));
+  }
+  function exitFullscreen() {
+    try {
+      var v = vid();
+      if (v && v.webkitExitFullscreen) { v.webkitExitFullscreen(); return; }
+      var fn = document.exitFullscreen || document.webkitExitFullscreen ||
+               document.mozCancelFullScreen || document.msExitFullscreen;
+      if (fn) fn.call(document);
+    } catch (e) {}
+  }
+  function toggleFullscreen() {
+    var v = vid(); if (!v) return;
+    if (inFullscreen()) { exitFullscreen(); toast("⤢ keluar"); }
+    else { goFullscreen(v); toast("⤢ fullscreen"); }
+  }
+  function togglePlay() { var v = vid(); if (!v) return; playPause(!!v.paused); }
+
+  /* Single vs double press: fire `single` after a short window, unless the same
+     key is hit again first → fire `dbl`. TV keyup is unreliable, so we time
+     keydowns only. ~350ms is below the double-tap threshold yet unnoticeable. */
+  var dpTimer = null, dpKey = 0, dpSingle = null;
+  function dpress(key, single, dbl) {
+    if (dpTimer && dpKey === key) { clearTimeout(dpTimer); dpTimer = null; dpKey = 0; dpSingle = null; dbl(); return; }
+    if (dpTimer) { clearTimeout(dpTimer); var f = dpSingle; dpTimer = null; dpKey = 0; dpSingle = null; if (f) f(); }
+    dpKey = key; dpSingle = single;
+    dpTimer = setTimeout(function () { dpTimer = null; dpKey = 0; var g = dpSingle; dpSingle = null; if (g) g(); }, 350);
+  }
+
   document.addEventListener("keydown", function (e) {
-    var k = e.keyCode;
-    if (k === 37) { move(-1); e.preventDefault(); }          // left
-    else if (k === 39) { move(1); e.preventDefault(); }       // right
-    else if (k === 38) { move(-3); e.preventDefault(); }      // up (grid step)
-    else if (k === 40) { move(3); e.preventDefault(); }       // down
+    var k = e.keyCode, v;
+    /* media keys — meaningful on the player; harmless elsewhere */
+    if (k === 415) { dpress(415, function () { playPause(true); },  function () { gotoEp(window.__tvNextHash, "Episode terakhir"); }); e.preventDefault(); return; }
+    if (k === 19)  { dpress(19,  function () { playPause(false); }, function () { gotoEp(window.__tvPrevHash, "Episode pertama"); }); e.preventDefault(); return; }
+    if (k === 412) { seekBy(-10); e.preventDefault(); return; }
+    if (k === 417) { seekBy(10);  e.preventDefault(); return; }
+    if (k === 460) { cycleRes();  e.preventDefault(); return; }
+    if (k >= 48 && k <= 57) {                                  // digits 0-9
+      if ((location.hash || "").indexOf("#/search") === 0) window.__tvKey(String.fromCharCode(k));
+      else seekPct((k - 48) / 10);                             // 1->10% … 9->90%, 0->start
+      e.preventDefault(); return;
+    }
+    if (k === 37) { moveDir("l"); e.preventDefault(); }
+    else if (k === 39) { moveDir("r"); e.preventDefault(); }
+    else if (k === 38) { moveDir("u"); e.preventDefault(); }
+    else if (k === 40) { moveDir("d"); e.preventDefault(); }
     else if (k === 13) {                                       // OK
-      var el = items[cur];
-      // On old TVs (Tizen 2.x / webOS 2-3 / Opera TV) fullscreen is only
-      // granted from a real key press, so the player goes fullscreen here
-      // rather than on autoplay. OK on the <video> = fullscreen.
-      if (el && el.tagName === "VIDEO") { goFullscreen(el); }
-      else if (el) { el.click(); }
+      var el = curEl;
+      if (el && el.tagName === "VIDEO") {
+        // 1x = play/pause, 2x = toggle fullscreen
+        dpress(13, togglePlay, toggleFullscreen);
+      } else if (el) { el.click(); }                            // non-video: instant, no delay
       e.preventDefault();
     }
-    else if (k === 8 || k === 461 || k === 10009) {           // back (browser/webOS/Tizen)
+    else if (k === 8 || k === 461 || k === 10009) {            // back
       if (location.hash && location.hash !== "#/") { history.back(); e.preventDefault(); }
     }
   });
 
+  /* ---- card grid render (shared by home + search) ---- */
+  function cardsHtml(a) {
+    var h = "", i;
+    for (i = 0; i < a.length; i++) {
+      h += '<a class="card focusable" href="#/anime/' + esc(a[i].slug) + '">' +
+           '<img src="' + img(a[i].coverImageUrl) + '" alt="" />' +
+           '<div class="t">' + esc(a[i].title) + "</div></a>";
+    }
+    return h;
+  }
+
   /* ---- views ---- */
+  var HOME_PAGE = 60, homeOffset = 0;
   function viewHome() {
-    app.innerHTML = '<h1>Anivora</h1><div class="center muted">Memuat…</div>';
-    api("listAnime", { limit: 60, offset: 0 }, function (res) {
-      var a = res.anime || [], h = '<h1>Anivora</h1>' +
-        '<div class="bar"><a class="btn focusable" href="/?pick=1">Ganti Mode</a></div>' +
-        '<div class="grid">';
-      if (!a.length) h += '<div class="muted">Belum ada anime.</div>';
-      for (var i = 0; i < a.length; i++) {
-        h += '<a class="card focusable" href="#/anime/' + esc(a[i].slug) + '">' +
-             '<img src="' + img(a[i].coverImageUrl) + '" alt="" />' +
-             '<div class="t">' + esc(a[i].title) + "</div></a>";
+    setHeader("Anivora");
+    app.innerHTML = spinner();
+    homeOffset = 0;
+    api("listAnime", { limit: HOME_PAGE, offset: 0 }, function (res) {
+      var a = res.anime || [], recent = loadRecent(), h = "";
+      if (recent.length) {
+        // Show only the single most recently watched episode, not the full
+        // history — "Lanjut Nonton" is a resume shortcut, not a watch log.
+        var rc = recent[0];
+        h += "<h2>Lanjut Nonton</h2>";
+        h += '<a class="row focusable" href="#/watch/' + esc(rc.s) + "?a=" + esc(rc.a) + '">' +
+             "<b>" + esc(rc.code || "") + "</b>" + (rc.title ? " — " + esc(rc.title) : "") +
+             '<span class="muted"> · ' + esc(rc.an || "") + "</span></a>";
       }
-      app.innerHTML = h + "</div>";
+      h += "<h2>Semua Anime</h2>";
+      if (!a.length) { app.innerHTML = h + '<div class="muted">Belum ada anime.</div>'; collect(); return; }
+      h += '<div class="grid" id="hgrid">' + cardsHtml(a) + "</div>";
+      h += '<div id="more"></div>';
+      app.innerHTML = h;
+      renderMore(a.length);
       collect();
     }, showErr);
   }
+  function renderMore(lastCount) {
+    var box = document.getElementById("more"); if (!box) return;
+    if (lastCount < HOME_PAGE) { box.innerHTML = ""; return; } // no more pages
+    box.innerHTML = '<span class="btn focusable" onclick="window.__tvMore()">Muat lebih ›</span>';
+  }
+  window.__tvMore = function () {
+    homeOffset += HOME_PAGE;
+    var box = document.getElementById("more"); if (box) box.innerHTML = spinner();
+    api("listAnime", { limit: HOME_PAGE, offset: homeOffset }, function (res) {
+      var a = res.anime || [], grid = document.getElementById("hgrid");
+      if (grid) grid.innerHTML += cardsHtml(a);
+      renderMore(a.length);
+      // keep current focus; nav picks up the new cards live
+      if (curEl) ensureVisible(curEl);
+    }, function () { renderMore(0); });
+  };
 
   function viewAnime(slug) {
-    app.innerHTML = '<div class="center muted">Memuat…</div>';
+    setHeader("Anime");
+    app.innerHTML = spinner();
     api("getAnime", { slug: slug }, function (res) {
       var an = res.anime, seasons = res.seasons || [];
-      var h = '<a class="btn focusable" href="#/">‹ Beranda</a>' +
-              "<h1>" + esc(an.title) + "</h1>";
+      setHeader(an.title || "Anime");
+      var h = "<h1>" + esc(an.title) + "</h1>";
       if (an.description) h += '<div class="muted" style="max-width:900px;margin-bottom:8px">' +
         esc(String(an.description).substring(0, 240)) + "</div>";
       for (var s = 0; s < seasons.length; s++) {
@@ -139,22 +386,69 @@
         for (var e = 0; e < eps.length; e++) {
           var ep = eps[e];
           h += '<a class="row focusable" href="#/watch/' + esc(ep.slug) + "?a=" + esc(slug) + '">' +
-               "<b>" + esc(ep.episodeCode) + "</b>" +
-               (ep.title ? " — " + esc(ep.title) : "") + "</a>";
+               "<b>" + esc(ep.episodeCode) + "</b>" + (ep.title ? " — " + esc(ep.title) : "") + "</a>";
         }
       }
       app.innerHTML = h; collect();
     }, showErr);
   }
 
-  /* Old TVs lack native HLS and cannot stream directly from the CDN, so play
-     Bunny's progressive MP4 renditions through our origin proxy. Step down
-     resolution automatically if a rendition is missing/unplayable. */
-  var MP4_RES = ["720p", "480p", "360p", "240p", "1080p"];
+  /* ---- search with custom D-pad virtual keyboard ---- */
+  var KB_ROWS = ["1234567890", "QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+  var searchQ = "";
+  function kbHtml() {
+    var h = '<div id="kb">', r, i, ch;
+    for (r = 0; r < KB_ROWS.length; r++) {
+      h += '<div class="kbrow">';
+      for (i = 0; i < KB_ROWS[r].length; i++) {
+        ch = KB_ROWS[r].charAt(i);
+        h += '<span class="key focusable" onclick="window.__tvKey(\'' + ch + '\')">' + ch + "</span>";
+      }
+      h += "</div>";
+    }
+    h += '<div class="kbrow">' +
+      '<span class="key wide focusable" onclick="window.__tvKb(\'space\')">SPASI</span>' +
+      '<span class="key wide focusable" onclick="window.__tvKb(\'back\')">⌫ Hapus</span>' +
+      '<span class="key wide focusable" onclick="window.__tvKb(\'clear\')">Bersih</span>' +
+      '<span class="key wide go focusable" onclick="window.__tvKb(\'go\')">🔍 Cari</span>' +
+      "</div></div>";
+    return h;
+  }
+  function renderQ() {
+    var el = document.getElementById("sq");
+    if (el) el.innerHTML = (searchQ ? esc(searchQ) : '<span class="muted">Ketik judul…</span>') + '<span class="cur">|</span>';
+  }
+  window.__tvKey = function (ch) { searchQ += ch.toLowerCase(); renderQ(); };
+  window.__tvKb = function (a) {
+    if (a === "space") searchQ += " ";
+    else if (a === "back") searchQ = searchQ.slice(0, -1);
+    else if (a === "clear") searchQ = "";
+    else if (a === "go") { doSearch(); return; }
+    renderQ();
+  };
+  function doSearch() {
+    var q = searchQ.replace(/^\s+|\s+$/g, "");
+    var box = document.getElementById("sresults"); if (!box) return;
+    if (q.length < 1) { box.innerHTML = '<div class="muted">Ketik dulu judulnya.</div>'; return; }
+    box.innerHTML = spinner();
+    api("listAnime", { search: q, limit: 60, offset: 0 }, function (res) {
+      var a = res.anime || [];
+      box.innerHTML = a.length
+        ? "<h2>Hasil: " + esc(q) + '</h2><div class="grid">' + cardsHtml(a) + "</div>"
+        : '<div class="muted">Tidak ada hasil untuk "' + esc(q) + '".</div>';
+      // nav can reach the new cards; keep focus on the keyboard for now
+    }, function (m) { box.innerHTML = '<div class="err">' + esc(m) + "</div>"; });
+  }
+  function viewSearch() {
+    setHeader("Cari Anime");
+    app.innerHTML =
+      '<div id="sq"></div>' + kbHtml() + '<div id="sresults"></div>';
+    renderQ();
+    collect();
+  }
 
-  // Request native fullscreen on the player. Old TV WebKit exposes
-  // webkitEnterFullscreen on the <video> itself; newer engines use the
-  // element Fullscreen API. Try every known spelling, swallow failures.
+  /* ---- player (unchanged: progressive MP4 via origin proxy) ---- */
+  var MP4_RES = ["720p", "480p", "360p", "240p", "1080p"];
   function goFullscreen(v) {
     try {
       if (v.webkitEnterFullscreen) { v.webkitEnterFullscreen(); return; }
@@ -163,7 +457,6 @@
       if (fn) fn.call(v);
     } catch (e) {}
   }
-
   window.__tvRes = function (base, i) {
     var box = document.getElementById("vbox");
     box.innerHTML = '<video id="vid" class="focusable" controls autoplay playsinline ' +
@@ -173,12 +466,8 @@
       'src="' + esc(base) + "play_" + MP4_RES[i] + '.mp4"></video>';
     var v = document.getElementById("vid");
     try { v.play(); } catch (e) {}
-    // Enter fullscreen once playback actually starts (TVs reject the call on
-    // a not-yet-ready element). Fall back to a direct attempt if no event.
     var fired = false;
-    v.addEventListener("playing", function () {
-      if (fired) return; fired = true; goFullscreen(v);
-    });
+    v.addEventListener("playing", function () { if (fired) return; fired = true; goFullscreen(v); });
     setTimeout(function () { if (!fired) { fired = true; goFullscreen(v); } }, 800);
   };
   window.__tvNext = function (v) {
@@ -190,24 +479,15 @@
       '<iframe src="' + esc(url) + '" allowfullscreen ' +
       'style="width:100%;max-width:1280px;height:520px;border:0;background:#000"></iframe>';
   };
-
-  // Auto-advance: navigate to the next episode's watch hash. Set when the
-  // anime's ordered episode list is known (see findSiblings below).
-  window.__tvGoNext = function () {
-    if (window.__tvNextHash) location.hash = window.__tvNextHash;
-  };
+  window.__tvGoNext = function () { if (window.__tvNextHash) location.hash = window.__tvNextHash; };
 
   function watchHash(slug, animeSlug) {
     return slug ? "#/watch/" + slug + (animeSlug ? "?a=" + animeSlug : "") : "";
   }
-
-  // Fetch the anime, flatten its seasons into one ordered episode list, and
-  // resolve the slugs surrounding `curSlug`. Old TVs lack Array.findIndex, so
-  // walk the list by hand.
   function findSiblings(animeSlug, curSlug, done) {
-    if (!animeSlug) { done({ prev: "", next: "" }); return; }
+    if (!animeSlug) { done({ prev: "", next: "", animeTitle: "" }); return; }
     api("getAnime", { slug: animeSlug }, function (res) {
-      var seasons = res.seasons || [], flat = [];
+      var seasons = res.seasons || [], flat = [], an = res.anime || {};
       for (var s = 0; s < seasons.length; s++) {
         var eps = seasons[s].episodes || [];
         for (var e = 0; e < eps.length; e++) flat.push(eps[e]);
@@ -217,50 +497,56 @@
           done({
             prev: i > 0 ? flat[i - 1].slug : "",
             next: i + 1 < flat.length ? flat[i + 1].slug : "",
+            animeTitle: an.title || "",
           });
           return;
         }
       }
-      done({ prev: "", next: "" });
-    }, function () { done({ prev: "", next: "" }); });
+      done({ prev: "", next: "", animeTitle: an.title || "" });
+    }, function () { done({ prev: "", next: "", animeTitle: "" }); });
   }
 
   function viewWatch(slug, animeSlug) {
-    app.innerHTML = '<div class="center muted">Memuat…</div>';
+    setHeader("Menonton");
+    app.innerHTML = spinner();
     api("getEpisode", { slug: slug }, function (res) {
       var ep = res.episode || {};
       var back = animeSlug ? "#/anime/" + animeSlug : "#/";
-      // Stream via our origin proxy (/v/<guid>/...) — old TV players fetch
-      // fine from this host but fail talking directly to the b-cdn.net CDN.
       var guid = ep.bunnyVideoId || "";
       var base = guid ? (ORIGIN + "/v/" + guid + "/") : "";
 
       findSiblings(animeSlug, slug, function (sib) {
         var prevHash = watchHash(sib.prev, animeSlug);
         window.__tvNextHash = watchHash(sib.next, animeSlug);
+        window.__tvPrevHash = prevHash;
+        setHeader((sib.animeTitle ? sib.animeTitle + " · " : "") + (ep.episodeCode || "Menonton"));
+        // record into Continue Watching
+        saveRecent({ s: slug, a: animeSlug || "", code: ep.episodeCode || "",
+                     title: ep.title || "", an: sib.animeTitle || "" });
 
         var h = '<div id="vbox"></div>';
-        // Episode nav, directly under the player.
+        h += "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
+        // On-screen episode nav (no remote-key binding for these). Playback also
+        // auto-advances on end via __tvGoNext.
         h += '<div style="margin:14px 0">';
         if (prevHash)
           h += '<a class="btn focusable" href="' + prevHash + '">‹ Episode Sebelumnya</a>';
         if (window.__tvNextHash)
           h += '<a class="btn focusable" href="' + window.__tvNextHash + '">Episode Berikutnya ›</a>';
         h += "</div>";
-        h += '<div style="margin:14px 0">';
-        if (base) {
-          h += '<span class="muted" style="margin-right:8px">Kualitas:</span>';
-          for (var i = 0; i < MP4_RES.length; i++) {
-            h += '<span class="btn focusable" onclick="window.__tvRes(\'' +
-                 esc(base) + "'," + i + ')">' + MP4_RES[i] + "</span>";
-          }
-        }
-        if (ep.embedUrl)
+        if (ep.embedUrl) {
+          h += '<div style="margin:14px 0">';
           h += '<span class="btn focusable" onclick="window.__tvEmbed(\'' + esc(ep.embedUrl) + '\')">Embed</span>';
-        h += "</div>";
+          h += "</div>";
+        }
         h += '<a class="btn focusable" href="' + back + '">‹ Kembali</a>' +
                 '<a class="btn focusable" href="#/">Beranda</a>';
-        h += "<h1>" + esc(ep.episodeCode || "") + " " + esc(ep.title || "") + "</h1>";
+        h += '<div class="legend"><b>Tombol remote:</b><br>' +
+          '<span class="k">OK</span> play/pause · <span class="k">OK ×2</span> fullscreen<br>' +
+          '<span class="k">▶ ×2</span> episode berikutnya · <span class="k">|| ×2</span> episode sebelumnya<br>' +
+          '<span class="k">&lt;&lt;</span> / <span class="k">&gt;&gt;</span> mundur/maju 10 detik · ' +
+          '<span class="k">1–9</span> loncat 10–90%<br>' +
+          '<span class="k">SUBTITLE</span> ganti kualitas · <span class="k">Back</span> kembali</div>';
         app.innerHTML = h; collect();
         if (base) window.__tvRes(base, 0);
         else app.innerHTML += '<div class="muted">Video belum tersedia.</div>';
@@ -275,7 +561,8 @@
     if ((m = hash.match(/^#\/anime\/(.+)$/))) { viewAnime(decodeURIComponent(m[1])); }
     else if ((m = hash.match(/^#\/watch\/([^?]+)(?:\?a=(.+))?$/))) {
       viewWatch(decodeURIComponent(m[1]), m[2] ? decodeURIComponent(m[2]) : "");
-    } else { viewHome(); }
+    } else if (hash.indexOf("#/search") === 0) { searchQ = ""; viewSearch(); }
+    else { viewHome(); }
     window.scrollTo(0, 0);
   }
   window.onhashchange = route;
