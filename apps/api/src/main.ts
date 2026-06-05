@@ -27,6 +27,7 @@ import { createActivityRepository } from "#/infrastructure/db/repositories/activ
 import { createAnimeRepository } from "#/infrastructure/db/repositories/anime-repository.ts"
 import { createEpisodeRepository } from "#/infrastructure/db/repositories/episode-repository.ts"
 import { createGenreRepository } from "#/infrastructure/db/repositories/genre-repository.ts"
+import { createRemoteUploadJobRepository } from "#/infrastructure/db/repositories/remote-upload-job-repository.ts"
 import { createSeasonRepository } from "#/infrastructure/db/repositories/season-repository.ts"
 import { createUserRepository } from "#/infrastructure/db/repositories/user-repository.ts"
 import { registerBunnyRoutes } from "#/presentation/http/bunny-routes.ts"
@@ -34,6 +35,7 @@ import { registerImageRoutes } from "#/presentation/http/image-routes.ts"
 import { registerSitemapRoutes } from "#/presentation/http/sitemap-routes.ts"
 import { registerVideoProxyRoutes } from "#/presentation/http/video-proxy-routes.ts"
 import { startEpisodePoller } from "#/presentation/http/episode-poller.ts"
+import { startRemoteUploadWorker } from "#/presentation/http/remote-upload-worker.ts"
 import { buildRouter } from "#/presentation/routers/index.ts"
 
 const db = createDb(env.DATABASE_URL)
@@ -44,6 +46,7 @@ const animeRepo = createAnimeRepository(db)
 const seasonRepo = createSeasonRepository(db)
 const episodeRepo = createEpisodeRepository(db)
 const genreRepo = createGenreRepository(db)
+const remoteJobRepo = createRemoteUploadJobRepository(db)
 
 const cache = createRedisCache(env.REDIS_URL)
 
@@ -64,9 +67,12 @@ const useCases = buildUseCases({
 	seasonRepo,
 	episodeRepo,
 	genreRepo,
+	remoteJobRepo,
 	cache,
 	auth,
 	bunny,
+	uploadWorkDir: env.UPLOAD_WORK_DIR,
+	remoteUploadMaxBytes: env.REMOTE_UPLOAD_MAX_BYTES,
 })
 
 const router = buildRouter(useCases)
@@ -249,4 +255,5 @@ serve({ fetch: app.fetch, port }, () => {
 
 if (env.NODE_ENV !== "test") {
 	startEpisodePoller(useCases)
+	startRemoteUploadWorker(useCases)
 }

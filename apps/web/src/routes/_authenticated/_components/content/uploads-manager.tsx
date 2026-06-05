@@ -5,6 +5,7 @@ import { Label } from "#/components/ui/label"
 import { orpc } from "#/libs/orpc/client"
 import { EpisodeUploadCard } from "./episode-upload-card"
 import type { EpisodeRow } from "./episode-types"
+import { RemoteUploadPanel } from "./remote-upload-panel"
 import { AnimePicker } from "./shared"
 import { SeasonPicker } from "./season-picker"
 
@@ -40,6 +41,8 @@ export function UploadsManager() {
 					/>
 				</div>
 			</div>
+
+			{seasonId && <RemoteUploadPanel seasonId={seasonId} />}
 
 			{seasonId && (
 				<div className="grid gap-3 lg:grid-cols-2">

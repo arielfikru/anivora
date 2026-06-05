@@ -61,11 +61,14 @@ services:
       - /tmp:rw,noexec,nosuid,size=64m
     volumes:
       - uploads_data:/app/uploads
+      - work_data:/app/work
     user: "1000:1000"
     environment:
       NODE_ENV: production
       PORT: 3000
       UPLOAD_DIR: /app/uploads
+      UPLOAD_WORK_DIR: /app/work
+      REMOTE_UPLOAD_MAX_BYTES: ${REMOTE_UPLOAD_MAX_BYTES:-21474836480}
       DATABASE_URL: postgresql://anivora:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/anivora
       REDIS_URL: redis://redis:6379
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
@@ -97,8 +100,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: "1.0"
+          # Headroom for the remote-upload worker streaming GB-scale files
+          # (download + extract + push to Bunny) alongside the API.
+          memory: 1536M
+          cpus: "2.0"
     <<: *common-security
 
   postgres:
@@ -164,3 +169,4 @@ volumes:
   postgres_data:
   redis_data:
   uploads_data:
+  work_data:

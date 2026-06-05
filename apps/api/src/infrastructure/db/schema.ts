@@ -1,4 +1,5 @@
 import {
+	bigint,
 	boolean,
 	integer,
 	pgTable,
@@ -133,6 +134,32 @@ export const episode = pgTable("episode", {
 	embedUrl: text("embed_url"),
 	status: text("status").notNull().default("draft"),
 	publishedAt: timestamp("published_at"),
+	createdAt: timestamp("created_at").notNull().defaultNow(),
+	updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+export const remoteUploadJob = pgTable("remote_upload_job", {
+	id: text("id").primaryKey(),
+	seasonId: text("season_id")
+		.notNull()
+		.references(() => season.id, { onDelete: "cascade" }),
+	animeId: text("anime_id")
+		.notNull()
+		.references(() => anime.id, { onDelete: "cascade" }),
+	sourceType: text("source_type").notNull(),
+	sourceUrl: text("source_url").notNull(),
+	isArchive: boolean("is_archive").notNull().default(false),
+	status: text("status").notNull().default("pending"),
+	error: text("error"),
+	workDir: text("work_dir"),
+	bytesDownloaded: bigint("bytes_downloaded", { mode: "number" })
+		.notNull()
+		.default(0),
+	bytesTotal: bigint("bytes_total", { mode: "number" }).notNull().default(0),
+	files: text("files").notNull().default("[]"),
+	createdBy: text("created_by").references(() => user.id, {
+		onDelete: "set null",
+	}),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })

@@ -56,12 +56,18 @@ RUN pnpm deploy --filter=@anivora/api --prod --ignore-scripts --legacy /out/api 
 # ─── runner ──────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
 
-RUN apk add --no-cache dumb-init wget
+# Remote-upload worker tooling:
+#  - libarchive-tools (bsdtar): extracts zip + rar/RAR5 (Alpine's 7zip/p7zip
+#    carry no rar codec; proprietary `unrar` was dropped).
+#  - ffmpeg: transcodes/remuxes each video to H.264/AAC mp4 for Bunny's
+#    MP4-fallback (which serves the uploaded file verbatim).
+RUN apk add --no-cache dumb-init wget libarchive-tools ffmpeg
 
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV WEB_DIST_PATH=/app/web
 ENV UPLOAD_DIR=/app/uploads
+ENV UPLOAD_WORK_DIR=/app/work
 
 WORKDIR /app
 COPY --from=prune /out/api ./api
@@ -70,8 +76,9 @@ COPY --from=build /app/apps/web/dist ./web
 # node:alpine already ships with an unprivileged `node` user (uid 1000).
 # Drop root and make only the data we need writeable at runtime.
 # /app/uploads is a persistent volume mount (admin-uploaded poster/banner
-# images); create it owned by node so the read-only rootfs container can write.
-RUN mkdir -p /app/uploads && chown -R node:node /app
+# images); /app/work is the remote-upload scratch volume. Create both owned by
+# node so the read-only rootfs container can write to the mounts.
+RUN mkdir -p /app/uploads /app/work && chown -R node:node /app
 USER node
 
 EXPOSE 3000

@@ -203,3 +203,26 @@ export const createGenreSchema = z.object({
 	name: z.string().min(1, "Name is required").max(100).trim(),
 })
 export const deleteGenreSchema = z.object({ id })
+
+export const createRemoteUploadSchema = z.object({
+	seasonId: id,
+	sourceType: z.enum(["url", "drive"]),
+	sourceUrl: z.string().url("Must be a valid URL").max(2048).trim(),
+	isArchive: z.boolean().default(false),
+})
+
+export const listRemoteUploadsSchema = z.object({ seasonId: id })
+export const getRemoteUploadSchema = z.object({ jobId: id })
+export const cancelRemoteUploadSchema = z.object({ jobId: id })
+
+export const mapRemoteUploadSchema = z.object({
+	jobId: id,
+	mappings: z
+		.array(
+			z.object({
+				relPath: z.string().min(1),
+				episodeNumber: z.number().int().min(0),
+			}),
+		)
+		.min(1, "Map at least one file"),
+})

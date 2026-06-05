@@ -6,6 +6,7 @@ import type { SeasonRepository } from "#/domain/catalog/season-repository.ts"
 import type { AuthService } from "#/domain/ports/auth-service.ts"
 import type { BunnyService } from "#/domain/ports/bunny.ts"
 import type { Cache } from "#/domain/ports/cache.ts"
+import type { RemoteUploadJobRepository } from "#/domain/upload/remote-upload-job-repository.ts"
 import type { UserRepository } from "#/domain/user/user-repository.ts"
 
 import { makeListActivityLogs } from "./activity/list-activity-logs.ts"
@@ -39,6 +40,12 @@ import { makeCreateSeason } from "./season/create-season.ts"
 import { makeDeleteSeason } from "./season/delete-season.ts"
 import { makeListSeasons } from "./season/list-seasons.ts"
 import { makeUpdateSeason } from "./season/update-season.ts"
+import { makeCancelRemoteUploadJob } from "./upload/cancel-remote-upload-job.ts"
+import { makeCreateRemoteUploadJob } from "./upload/create-remote-upload-job.ts"
+import { makeGetRemoteUploadJob } from "./upload/get-remote-upload-job.ts"
+import { makeListRemoteUploadJobs } from "./upload/list-remote-upload-jobs.ts"
+import { makeMapRemoteUploadJob } from "./upload/map-remote-upload-job.ts"
+import { makeProcessRemoteUploadJobs } from "./upload/process-remote-upload-jobs.ts"
 import { makeBanUser } from "./user/ban-user.ts"
 import { makeCreateUser } from "./user/create-user.ts"
 import { makeDeleteUser } from "./user/delete-user.ts"
@@ -54,9 +61,12 @@ export interface Dependencies {
 	seasonRepo: SeasonRepository
 	episodeRepo: EpisodeRepository
 	genreRepo: GenreRepository
+	remoteJobRepo: RemoteUploadJobRepository
 	cache: Cache
 	auth: AuthService
 	bunny: BunnyService
+	uploadWorkDir: string
+	remoteUploadMaxBytes?: number
 }
 
 function buildCatalog(deps: Dependencies) {
@@ -138,6 +148,35 @@ function buildEpisode(deps: Dependencies) {
 	}
 }
 
+function buildUpload(deps: Dependencies) {
+	const shared = {
+		jobRepo: deps.remoteJobRepo,
+		activityRepo: deps.activityRepo,
+	}
+	return {
+		create: makeCreateRemoteUploadJob({
+			...shared,
+			seasonRepo: deps.seasonRepo,
+		}),
+		list: makeListRemoteUploadJobs({ jobRepo: deps.remoteJobRepo }),
+		get: makeGetRemoteUploadJob({ jobRepo: deps.remoteJobRepo }),
+		map: makeMapRemoteUploadJob({
+			...shared,
+			episodeRepo: deps.episodeRepo,
+			seasonRepo: deps.seasonRepo,
+			animeRepo: deps.animeRepo,
+		}),
+		cancel: makeCancelRemoteUploadJob(shared),
+		process: makeProcessRemoteUploadJobs({
+			jobRepo: deps.remoteJobRepo,
+			episodeRepo: deps.episodeRepo,
+			bunny: deps.bunny,
+			workRoot: deps.uploadWorkDir,
+			maxBytes: deps.remoteUploadMaxBytes,
+		}),
+	}
+}
+
 function buildGenre(deps: Dependencies) {
 	const shared = { genreRepo: deps.genreRepo, activityRepo: deps.activityRepo }
 	return {
@@ -171,6 +210,7 @@ export function buildUseCases(deps: Dependencies) {
 		season: buildSeason(deps),
 		episode: buildEpisode(deps),
 		genre: buildGenre(deps),
+		upload: buildUpload(deps),
 	}
 }
 

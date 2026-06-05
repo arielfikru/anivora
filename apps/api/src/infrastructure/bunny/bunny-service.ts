@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto"
+import { Readable } from "node:stream"
 
 import type { BunnyService } from "#/domain/ports/bunny.ts"
 
@@ -64,6 +65,20 @@ export function createBunnyService(config: BunnyConfig): BunnyService {
 				headers: { AccessKey: config.apiKey },
 				body: file,
 			})
+		},
+
+		async uploadVideoStream(videoId, body, contentLength) {
+			await request(`${videosUrl}/${videoId}`, {
+				method: "PUT",
+				headers: {
+					AccessKey: config.apiKey,
+					"content-type": "application/octet-stream",
+					"content-length": String(contentLength),
+				},
+				body: Readable.toWeb(body) as ReadableStream,
+				// Node's fetch requires duplex for a streaming request body.
+				duplex: "half",
+			} as RequestInit)
 		},
 
 		async getVideoStatus(videoId) {

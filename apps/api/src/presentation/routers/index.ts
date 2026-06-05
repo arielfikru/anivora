@@ -7,6 +7,7 @@ import { buildCatalogRouter } from "./catalog.ts"
 import { buildEpisodeRouter } from "./episode.ts"
 import { buildGenreRouter } from "./genre.ts"
 import { buildSeasonRouter } from "./season.ts"
+import { buildUploadRouter } from "./upload.ts"
 import { buildUserRouter } from "./user.ts"
 
 export function buildRouter(useCases: UseCases) {
@@ -28,6 +29,7 @@ export function buildRouter(useCases: UseCases) {
 			...buildSeasonRouter(useCases.season),
 			...buildEpisodeRouter(useCases.episode),
 			...buildGenreRouter(useCases.genre),
+			...buildUploadRouter(useCases.upload),
 		},
 	}
 }

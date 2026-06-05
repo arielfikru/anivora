@@ -15,6 +15,8 @@ const envSchema = z
 		PORT: z.coerce.number().int().positive().default(3001),
 		WEB_DIST_PATH: z.string().optional(),
 		UPLOAD_DIR: z.string().default("./uploads"),
+		UPLOAD_WORK_DIR: z.string().default("./work"),
+		REMOTE_UPLOAD_MAX_BYTES: z.coerce.number().int().positive().optional(),
 		BUNNY_STREAM_LIBRARY_ID: z
 			.string()
 			.min(1, "BUNNY_STREAM_LIBRARY_ID required"),
