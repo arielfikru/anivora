@@ -67,6 +67,18 @@ async function fetchDrive(url: string): Promise<Response> {
 	const confirmed = await fetch(`${action}?${params.toString()}`, {
 		headers: { "user-agent": BROWSER_UA, ...(cookie ? { cookie } : {}) },
 	})
+	// Still HTML after the confirm replay = not a file but an error/quota page
+	// (e.g. "Quota exceeded"). Surface Drive's own message instead of silently
+	// saving the page and later failing with a misleading "no video files".
+	if ((confirmed.headers.get("content-type") ?? "").includes("text/html")) {
+		const page = await confirmed.text()
+		const caption = page
+			.match(/uc-(?:error|warning)-(?:caption|subcaption)">([^<]+)</)?.[1]
+			?.replace(/&#39;/g, "'")
+		throw badRequest(
+			`Google Drive did not return a file${caption ? `: ${caption}` : " (quota exceeded, restricted, or the link is not a public file)"}`,
+		)
+	}
 	return confirmed
 }
 
