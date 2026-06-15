@@ -17,9 +17,9 @@ import { cors } from "hono/cors"
 import { requestId } from "hono/request-id"
 import { buildUseCases } from "#/application/use-cases.ts"
 import { createAuthService } from "#/infrastructure/auth/auth-service.ts"
-import { createBunnyService } from "#/infrastructure/bunny/bunny-service.ts"
 import { buildAuth } from "#/infrastructure/auth/better-auth.ts"
 import { createRedisCache } from "#/infrastructure/cache/redis.ts"
+import { createR2Storage } from "#/infrastructure/r2/r2-service.ts"
 import { env } from "#/infrastructure/config/env.ts"
 import { createDb } from "#/infrastructure/db/client.ts"
 import { logger } from "#/infrastructure/observability/logger.ts"
@@ -30,11 +30,9 @@ import { createGenreRepository } from "#/infrastructure/db/repositories/genre-re
 import { createRemoteUploadJobRepository } from "#/infrastructure/db/repositories/remote-upload-job-repository.ts"
 import { createSeasonRepository } from "#/infrastructure/db/repositories/season-repository.ts"
 import { createUserRepository } from "#/infrastructure/db/repositories/user-repository.ts"
-import { registerBunnyRoutes } from "#/presentation/http/bunny-routes.ts"
+import { registerEpisodeUploadRoutes } from "#/presentation/http/episode-upload-routes.ts"
 import { registerImageRoutes } from "#/presentation/http/image-routes.ts"
 import { registerSitemapRoutes } from "#/presentation/http/sitemap-routes.ts"
-import { registerVideoProxyRoutes } from "#/presentation/http/video-proxy-routes.ts"
-import { startEpisodePoller } from "#/presentation/http/episode-poller.ts"
 import { startRemoteUploadWorker } from "#/presentation/http/remote-upload-worker.ts"
 import { buildRouter } from "#/presentation/routers/index.ts"
 
@@ -53,11 +51,12 @@ const cache = createRedisCache(env.REDIS_URL)
 const betterAuthInstance = buildAuth({ db, activityRepo })
 const auth = createAuthService(betterAuthInstance)
 
-const bunny = createBunnyService({
-	libraryId: env.BUNNY_STREAM_LIBRARY_ID,
-	apiKey: env.BUNNY_STREAM_API_KEY,
-	baseUrl: env.BUNNY_STREAM_BASE_URL,
-	cdnHostname: env.BUNNY_STREAM_CDN_HOSTNAME,
+const objectStorage = createR2Storage({
+	accountId: env.R2_ACCOUNT_ID,
+	accessKeyId: env.R2_ACCESS_KEY_ID,
+	secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+	bucket: env.R2_BUCKET,
+	publicUrl: env.R2_PUBLIC_URL,
 })
 
 const useCases = buildUseCases({
@@ -70,7 +69,7 @@ const useCases = buildUseCases({
 	remoteJobRepo,
 	cache,
 	auth,
-	bunny,
+	objectStorage,
 	uploadWorkDir: env.UPLOAD_WORK_DIR,
 	remoteUploadMaxBytes: env.REMOTE_UPLOAD_MAX_BYTES,
 })
@@ -129,18 +128,9 @@ app.get("/ready", async (c) => {
 
 app.on(["GET", "POST"], "/api/auth/*", (c) => auth.handler(c.req.raw))
 
-registerBunnyRoutes(app, {
-	auth,
-	useCases,
-	webhookSecret: env.WEBHOOK_SECRET,
-})
+registerEpisodeUploadRoutes(app, { auth, useCases })
 
 registerImageRoutes(app, { auth, uploadDir: env.UPLOAD_DIR })
-
-registerVideoProxyRoutes(app, {
-	cdnHostname: env.BUNNY_STREAM_CDN_HOSTNAME,
-	referer: WEB_ORIGIN,
-})
 
 registerSitemapRoutes(app, { animeRepo, webOrigin: WEB_ORIGIN })
 
@@ -254,6 +244,5 @@ serve({ fetch: app.fetch, port }, () => {
 })
 
 if (env.NODE_ENV !== "test") {
-	startEpisodePoller(useCases)
 	startRemoteUploadWorker(useCases)
 }

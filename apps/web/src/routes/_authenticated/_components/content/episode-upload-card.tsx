@@ -29,14 +29,6 @@ export function EpisodeUploadCard({ episode, seasonId }: Props) {
 
 	const { state, upload, reset } = useVideoUpload(invalidate)
 
-	const sync = useMutation({
-		...orpc.admin.syncEpisodeStatus.mutationOptions(),
-		onSuccess: () => {
-			invalidate()
-			toast.success("Status synced")
-		},
-		onError: (e) => toast.error(extractErrorMessage(e)),
-	})
 	const publish = useMutation({
 		...orpc.admin.updateEpisode.mutationOptions(),
 		onSuccess: () => {
@@ -84,7 +76,6 @@ export function EpisodeUploadCard({ episode, seasonId }: Props) {
 						</span>
 						<span>
 							{state.phase === "uploading" && `${state.progress}%`}
-							{state.phase === "processing" && "Processing on Bunny…"}
 							{state.phase === "failed" && (
 								<span className="text-destructive">{state.error}</span>
 							)}
@@ -105,14 +96,6 @@ export function EpisodeUploadCard({ episode, seasonId }: Props) {
 			)}
 
 			<div className="flex flex-wrap gap-2">
-				<Button
-					variant="outline"
-					size="sm"
-					disabled={sync.isPending}
-					onClick={() => sync.mutate({ episodeId: episode.id })}
-				>
-					Sync status
-				</Button>
 				<Button
 					variant={isPublished ? "outline" : "default"}
 					size="sm"

@@ -25,7 +25,8 @@ export interface RemoteUploadFile {
 	episodeId: string | null
 	uploadStatus: RemoteUploadFileStatus
 	bytesSent: number
-	bunnyVideoId: string | null
+	/** R2 object key once uploaded, else null. */
+	videoKey: string | null
 	error: string | null
 }
 

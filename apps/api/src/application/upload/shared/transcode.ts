@@ -26,10 +26,11 @@ async function probeCodec(
 }
 
 /**
- * Produce a Bunny-friendly MP4 at `dest` from `src`. Bunny's MP4-fallback
- * serves the uploaded file directly, so every episode must land as an
- * H.264/AAC `.mp4` with a moved moov atom (`+faststart`). Streams already in
- * H.264/AAC are stream-copied (fast remux); anything else is transcoded.
+ * Produce a progressive-streaming MP4 at `dest` from `src`. R2 serves the
+ * uploaded file directly, so every episode must land as an H.264/AAC `.mp4`
+ * with a moved moov atom (`+faststart`) for instant playback/seeking. Streams
+ * already in H.264/AAC are stream-copied (fast remux); anything else is
+ * transcoded.
  */
 export async function transcodeToMp4(src: string, dest: string): Promise<void> {
 	const [video, audio] = await Promise.all([

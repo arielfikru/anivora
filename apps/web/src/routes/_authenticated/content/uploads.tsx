@@ -16,7 +16,7 @@ function UploadsPage() {
 	return (
 		<AdminPageShell
 			title="Uploads"
-			description="Upload episode videos to Bunny Stream."
+			description="Upload episode videos to Cloudflare R2."
 		>
 			<UploadsManager />
 		</AdminPageShell>

@@ -3,14 +3,16 @@ import { mkdir, rm, stat } from "node:fs/promises"
 import { basename, join, relative } from "node:path"
 
 import type { EpisodeRepository } from "#/domain/catalog/episode-repository.ts"
-import type { BunnyService } from "#/domain/ports/bunny.ts"
+import type { SeasonRepository } from "#/domain/catalog/season-repository.ts"
+import type { ObjectStorage } from "#/domain/ports/object-storage.ts"
 import type { RemoteUploadJobRepository } from "#/domain/upload/remote-upload-job-repository.ts"
 import type {
 	RemoteUploadFile,
 	RemoteUploadJob,
 } from "#/domain/upload/remote-upload-job.ts"
 import { logger } from "#/infrastructure/observability/logger.ts"
-import { buildBunnyUrls } from "../episode/bunny-urls.ts"
+import { resolveReadyStatus } from "../episode/resolve-ready-status.ts"
+import { episodeVideoKey } from "../episode/video-key.ts"
 import { detectArchiveType, extractArchive } from "./shared/archive.ts"
 import { downloadToFile } from "./shared/source-downloader.ts"
 import { transcodeToMp4 } from "./shared/transcode.ts"
@@ -23,7 +25,8 @@ const CLAIMABLE = ["pending", "downloading", "extracting", "uploading"] as const
 export interface ProcessRemoteUploadJobsDeps {
 	jobRepo: RemoteUploadJobRepository
 	episodeRepo: EpisodeRepository
-	bunny: BunnyService
+	seasonRepo: SeasonRepository
+	objectStorage: ObjectStorage
 	workRoot: string
 	maxBytes?: number
 }
@@ -102,7 +105,7 @@ export function makeProcessRemoteUploadJobs(deps: ProcessRemoteUploadJobsDeps) {
 			episodeId: null,
 			uploadStatus: "pending",
 			bytesSent: 0,
-			bunnyVideoId: null,
+			videoKey: null,
 			error: null,
 		}))
 
@@ -123,31 +126,41 @@ export function makeProcessRemoteUploadJobs(deps: ProcessRemoteUploadJobsDeps) {
 		if (!episode)
 			return { ...file, uploadStatus: "failed", error: "Episode missing" }
 
-		// Bunny's MP4-fallback serves the uploaded file verbatim, so always hand
-		// it an H.264/AAC mp4 (remuxed when already compatible, else transcoded).
+		// R2 serves the uploaded file verbatim for progressive playback, so hand
+		// it an H.264/AAC faststart mp4 (remuxed when already compatible, else
+		// transcoded).
 		const src = join(job.workDir ?? "", file.relPath)
-		const mp4 = `${src}.bunny.mp4`
+		const mp4 = `${src}.out.mp4`
 		await transcodeToMp4(src, mp4)
 		const size = (await stat(mp4)).size
-		const title = episode.title ?? episode.episodeCode
-		const { videoId } = await deps.bunny.createVideo(title)
 		try {
-			await deps.bunny.uploadVideoStream(videoId, createReadStream(mp4), size)
+			const key = episodeVideoKey(episode.id)
+			await deps.objectStorage.putStream(
+				key,
+				createReadStream(mp4),
+				size,
+				"video/mp4",
+			)
+			const resolved = await resolveReadyStatus(
+				deps.seasonRepo,
+				episode.seasonId,
+				"ready",
+			)
+			await deps.episodeRepo.attachVideo(episode.id, {
+				storageProvider: "r2",
+				mp4Url: deps.objectStorage.publicUrl(key),
+				status: resolved.status,
+				publishedAt: resolved.publishedAt,
+			})
+			return {
+				...file,
+				uploadStatus: "done",
+				bytesSent: size,
+				videoKey: key,
+				error: null,
+			}
 		} finally {
 			await rm(mp4, { force: true })
-		}
-		await deps.episodeRepo.attachBunny(episode.id, {
-			bunnyVideoId: videoId,
-			bunnyLibraryId: deps.bunny.libraryId,
-			...buildBunnyUrls(deps.bunny, videoId),
-			status: "processing",
-		})
-		return {
-			...file,
-			uploadStatus: "done",
-			bytesSent: size,
-			bunnyVideoId: videoId,
-			error: null,
 		}
 	}
 

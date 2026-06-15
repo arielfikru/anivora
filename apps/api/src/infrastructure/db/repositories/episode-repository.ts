@@ -66,16 +66,6 @@ export function createEpisodeRepository(db: Db): EpisodeRepository {
 			return row ? toEpisode(row) : null
 		},
 
-		async findByBunnyVideoId(videoId) {
-			const row = await db
-				.select()
-				.from(schema.episode)
-				.where(eq(schema.episode.bunnyVideoId, videoId))
-				.limit(1)
-				.then((r) => r[0])
-			return row ? toEpisode(row) : null
-		},
-
 		async slugExists(slug) {
 			const row = await db
 				.select({ id: schema.episode.id })
@@ -105,18 +95,19 @@ export function createEpisodeRepository(db: Db): EpisodeRepository {
 			return row ? toEpisode(row) : null
 		},
 
-		async attachBunny(id, data) {
+		async attachVideo(id, data) {
+			const set: Record<string, unknown> = {
+				storageProvider: data.storageProvider,
+				mp4Url: data.mp4Url ?? null,
+				hlsUrl: data.hlsUrl ?? null,
+				status: data.status,
+				updatedAt: new Date(),
+			}
+			if (data.thumbnailUrl !== undefined) set.thumbnailUrl = data.thumbnailUrl
+			if (data.publishedAt !== undefined) set.publishedAt = data.publishedAt
 			const row = await db
 				.update(schema.episode)
-				.set({
-					bunnyVideoId: data.bunnyVideoId,
-					bunnyLibraryId: data.bunnyLibraryId,
-					embedUrl: data.embedUrl,
-					playbackUrl: data.playbackUrl,
-					thumbnailUrl: data.thumbnailUrl,
-					status: data.status,
-					updatedAt: new Date(),
-				})
+				.set(set)
 				.where(eq(schema.episode.id, id))
 				.returning()
 				.then((r) => r[0])

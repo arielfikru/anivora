@@ -19,10 +19,13 @@ export interface Episode {
 	description: string | null
 	durationSeconds: number | null
 	thumbnailUrl: string | null
-	bunnyVideoId: string | null
-	bunnyLibraryId: string | null
+	// Legacy Bunny HLS playlist for episodes uploaded before the R2 migration;
+	// handed to the native player for browsers that support HLS. New uploads
+	// use mp4Url instead.
 	playbackUrl: string | null
-	embedUrl: string | null
+	mp4Url: string | null
+	hlsUrl: string | null
+	storageProvider: string | null
 	status: EpisodeStatus
 	publishedAt: Date | null
 	createdAt: Date

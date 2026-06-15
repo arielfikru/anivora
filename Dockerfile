@@ -59,8 +59,8 @@ FROM node:22-alpine AS runner
 # Remote-upload worker tooling:
 #  - libarchive-tools (bsdtar): extracts zip + rar/RAR5 (Alpine's 7zip/p7zip
 #    carry no rar codec; proprietary `unrar` was dropped).
-#  - ffmpeg: transcodes/remuxes each video to H.264/AAC mp4 for Bunny's
-#    MP4-fallback (which serves the uploaded file verbatim).
+#  - ffmpeg: transcodes/remuxes each video to H.264/AAC faststart mp4 for
+#    progressive playback from R2 (which serves the uploaded file verbatim).
 RUN apk add --no-cache dumb-init wget libarchive-tools ffmpeg
 
 ENV NODE_ENV=production

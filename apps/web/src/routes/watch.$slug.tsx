@@ -226,66 +226,48 @@ function BackButton({ animeSlug }: { animeSlug?: string }) {
 }
 
 /**
- * Bunny's embed implements the player.js protocol over postMessage. Register
- * `ended` + `timeupdate` listeners on load; advance on finish and report
- * playback fraction for the resume bar. Payload shape is read defensively
- * because player.js implementations vary (value vs data).
+ * Native HTML5 player. New episodes play a progressive mp4 from R2 (`mp4Url`);
+ * legacy episodes fall back to their Bunny HLS playlist (`playbackUrl`), which
+ * plays on browsers/TVs with native HLS support. Reports `ended` and
+ * `timeupdate` for auto-advance and the resume bar.
  */
-function useBunnyPlayer(
-	ref: React.RefObject<HTMLIFrameElement | null>,
-	onEnded: () => void,
-	onProgress: (seconds: number, duration: number) => void,
-) {
-	useEffect(() => {
-		const win = ref.current?.contentWindow
-		const register = () => {
-			for (const value of ["ended", "timeupdate"]) {
-				win?.postMessage(
-					JSON.stringify({
-						context: "player.js",
-						version: "1.0",
-						method: "addEventListener",
-						value,
-						listener: `anv-${value}`,
-					}),
-					"*",
-				)
-			}
-		}
-		const onMessage = (e: MessageEvent) => {
-			if (typeof e.data !== "string") return
-			try {
-				const msg = JSON.parse(e.data) as {
-					context?: string
-					event?: string
-					value?: { seconds?: number; duration?: number }
-					data?: { seconds?: number; duration?: number }
-				}
-				if (msg.context !== "player.js") return
-				if (msg.event === "ended") {
-					onEnded()
-				} else if (msg.event === "timeupdate") {
-					const p = msg.value ?? msg.data
-					if (
-						typeof p?.seconds === "number" &&
-						typeof p?.duration === "number"
-					) {
-						onProgress(p.seconds, p.duration)
-					}
-				}
-			} catch {}
-		}
-		window.addEventListener("message", onMessage)
-		const timer = setTimeout(register, 1000)
-		return () => {
-			window.removeEventListener("message", onMessage)
-			clearTimeout(timer)
-		}
-	}, [ref, onEnded, onProgress])
-}
-
-function withAutoplay(src: string): string {
-	return src.includes("?") ? `${src}&autoplay=true` : `${src}?autoplay=true`
+function NativePlayer({
+	src,
+	episode,
+	onEnded,
+	onProgress,
+	containerRef,
+}: {
+	src: string
+	episode: Episode
+	onEnded: () => void
+	onProgress: (seconds: number, duration: number) => void
+	containerRef: React.RefObject<HTMLDivElement | null>
+}) {
+	const videoRef = useRef<HTMLVideoElement>(null)
+	const handleTimeUpdate = useCallback(() => {
+		const v = videoRef.current
+		if (v && v.duration > 0) onProgress(v.currentTime, v.duration)
+	}, [onProgress])
+	return (
+		<div
+			ref={containerRef}
+			className="aspect-video w-full max-w-6xl overflow-hidden rounded-xl bg-black"
+		>
+			{/* biome-ignore lint/a11y/useMediaCaption: subtitle track not yet available */}
+			<video
+				ref={videoRef}
+				src={src}
+				poster={episode.thumbnailUrl ?? undefined}
+				controls
+				autoPlay
+				playsInline
+				onEnded={onEnded}
+				onTimeUpdate={handleTimeUpdate}
+				className="h-full w-full bg-black"
+			/>
+		</div>
+	)
 }
 
 function Player({
@@ -299,24 +281,16 @@ function Player({
 	onProgress: (seconds: number, duration: number) => void
 	containerRef: React.RefObject<HTMLDivElement | null>
 }) {
-	const iframeRef = useRef<HTMLIFrameElement>(null)
-	useBunnyPlayer(iframeRef, onEnded, onProgress)
-	const src = episode.embedUrl ?? episode.playbackUrl
+	const src = episode.mp4Url ?? episode.playbackUrl
 	if (src) {
 		return (
-			<div
-				ref={containerRef}
-				className="aspect-video w-full max-w-6xl overflow-hidden rounded-xl bg-black"
-			>
-				<iframe
-					ref={iframeRef}
-					src={withAutoplay(src)}
-					title={episode.title ?? episode.episodeCode}
-					allow="autoplay; fullscreen; picture-in-picture"
-					allowFullScreen
-					className="h-full w-full border-0"
-				/>
-			</div>
+			<NativePlayer
+				src={src}
+				episode={episode}
+				onEnded={onEnded}
+				onProgress={onProgress}
+				containerRef={containerRef}
+			/>
 		)
 	}
 	return (

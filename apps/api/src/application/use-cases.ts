@@ -4,8 +4,8 @@ import type { EpisodeRepository } from "#/domain/catalog/episode-repository.ts"
 import type { GenreRepository } from "#/domain/catalog/genre-repository.ts"
 import type { SeasonRepository } from "#/domain/catalog/season-repository.ts"
 import type { AuthService } from "#/domain/ports/auth-service.ts"
-import type { BunnyService } from "#/domain/ports/bunny.ts"
 import type { Cache } from "#/domain/ports/cache.ts"
+import type { ObjectStorage } from "#/domain/ports/object-storage.ts"
 import type { RemoteUploadJobRepository } from "#/domain/upload/remote-upload-job-repository.ts"
 import type { UserRepository } from "#/domain/user/user-repository.ts"
 
@@ -22,16 +22,11 @@ import { makeListAllAnime } from "./catalog/list-all-anime.ts"
 import { makeListAnime } from "./catalog/list-anime.ts"
 import { makeListGenres } from "./catalog/list-genres.ts"
 import { makeSearchAnime } from "./catalog/search-anime.ts"
-import { makeAttachBunnyVideo } from "./episode/attach-bunny-video.ts"
 import { makeBulkCreateEpisodes } from "./episode/bulk-create-episodes.ts"
 import { makeCreateEpisode } from "./episode/create-episode.ts"
-import { makeCreateUploadTicket } from "./episode/create-upload-ticket.ts"
 import { makeDeleteEpisode } from "./episode/delete-episode.ts"
-import { makeHandleBunnyWebhook } from "./episode/handle-bunny-webhook.ts"
 import { makeListEpisodes } from "./episode/list-episodes.ts"
-import { makePollProcessingEpisodes } from "./episode/poll-processing-episodes.ts"
 import { makeSetSeasonEpisodesStatus } from "./episode/set-season-episodes-status.ts"
-import { makeSyncEpisodeStatus } from "./episode/sync-episode-status.ts"
 import { makeUpdateEpisode } from "./episode/update-episode.ts"
 import { makeUploadEpisodeVideo } from "./episode/upload-episode-video.ts"
 import { makeCreateGenre } from "./genre/create-genre.ts"
@@ -64,7 +59,7 @@ export interface Dependencies {
 	remoteJobRepo: RemoteUploadJobRepository
 	cache: Cache
 	auth: AuthService
-	bunny: BunnyService
+	objectStorage: ObjectStorage
 	uploadWorkDir: string
 	remoteUploadMaxBytes?: number
 }
@@ -113,7 +108,6 @@ function buildEpisode(deps: Dependencies) {
 		episodeRepo: deps.episodeRepo,
 		activityRepo: deps.activityRepo,
 	}
-	const withBunny = { ...shared, bunny: deps.bunny }
 	return {
 		list: makeListEpisodes({ episodeRepo: deps.episodeRepo }),
 		create: makeCreateEpisode({
@@ -128,23 +122,13 @@ function buildEpisode(deps: Dependencies) {
 		}),
 		update: makeUpdateEpisode(shared),
 		delete: makeDeleteEpisode(shared),
-		uploadVideo: makeUploadEpisodeVideo(withBunny),
-		createUpload: makeCreateUploadTicket(withBunny),
-		attachBunny: makeAttachBunnyVideo(withBunny),
-		syncStatus: makeSyncEpisodeStatus({
-			...withBunny,
-			seasonRepo: deps.seasonRepo,
-		}),
-		setSeasonStatus: makeSetSeasonEpisodesStatus(shared),
-		handleWebhook: makeHandleBunnyWebhook({
+		uploadVideo: makeUploadEpisodeVideo({
 			...shared,
 			seasonRepo: deps.seasonRepo,
+			objectStorage: deps.objectStorage,
+			workRoot: deps.uploadWorkDir,
 		}),
-		pollProcessing: makePollProcessingEpisodes({
-			episodeRepo: deps.episodeRepo,
-			seasonRepo: deps.seasonRepo,
-			bunny: deps.bunny,
-		}),
+		setSeasonStatus: makeSetSeasonEpisodesStatus(shared),
 	}
 }
 
@@ -170,7 +154,8 @@ function buildUpload(deps: Dependencies) {
 		process: makeProcessRemoteUploadJobs({
 			jobRepo: deps.remoteJobRepo,
 			episodeRepo: deps.episodeRepo,
-			bunny: deps.bunny,
+			seasonRepo: deps.seasonRepo,
+			objectStorage: deps.objectStorage,
 			workRoot: deps.uploadWorkDir,
 			maxBytes: deps.remoteUploadMaxBytes,
 		}),

@@ -36,6 +36,13 @@
       "when": 1780590908058,
       "tag": "0004_nosy_payback",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781506804015,
+      "tag": "0005_short_firebird",
+      "breakpoints": true
     }
   ]
 }

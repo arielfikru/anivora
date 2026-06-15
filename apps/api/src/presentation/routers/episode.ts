@@ -1,14 +1,11 @@
 import type { UseCases } from "#/application/use-cases.ts"
 import { adminProcedure, toAuthedContext } from "../orpc/middleware.ts"
 import {
-	attachBunnyVideoSchema,
 	bulkCreateEpisodesSchema,
 	createEpisodeSchema,
-	createEpisodeUploadSchema,
 	deleteEpisodeSchema,
 	listEpisodesSchema,
 	setSeasonEpisodesStatusSchema,
-	syncEpisodeStatusSchema,
 	updateEpisodeSchema,
 } from "../orpc/schemas.ts"
 
@@ -42,24 +39,6 @@ export function buildEpisodeRouter(useCases: UseCases["episode"]) {
 			.input(deleteEpisodeSchema)
 			.handler(({ input, context }) =>
 				useCases.delete(input, toAuthedContext(context)),
-			),
-
-		createEpisodeUpload: adminProcedure
-			.input(createEpisodeUploadSchema)
-			.handler(({ input, context }) =>
-				useCases.createUpload(input, toAuthedContext(context)),
-			),
-
-		attachBunnyVideo: adminProcedure
-			.input(attachBunnyVideoSchema)
-			.handler(({ input, context }) =>
-				useCases.attachBunny(input, toAuthedContext(context)),
-			),
-
-		syncEpisodeStatus: adminProcedure
-			.input(syncEpisodeStatusSchema)
-			.handler(({ input, context }) =>
-				useCases.syncStatus(input, toAuthedContext(context)),
 			),
 
 		setSeasonEpisodesStatus: adminProcedure

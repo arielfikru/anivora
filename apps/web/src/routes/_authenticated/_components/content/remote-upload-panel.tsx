@@ -50,7 +50,8 @@ export function RemoteUploadPanel({ seasonId }: Props) {
 				<h3 className="font-medium text-sm">Remote upload</h3>
 				<p className="text-muted-foreground text-xs">
 					Fetch a direct video URL, a Google Drive link, or a zip/rar archive on
-					the server and push it to Bunny — no local file needed.
+					the server, transcode to mp4, and push it to R2 — no local file
+					needed.
 				</p>
 			</div>
 

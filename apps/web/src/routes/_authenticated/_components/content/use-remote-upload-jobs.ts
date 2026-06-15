@@ -15,7 +15,7 @@ export function isJobActive(status: string): boolean {
 
 /**
  * Polls the season's remote-upload jobs, fast (3s) while any job is still
- * working and idle otherwise — mirrors the Bunny "processing" poll cadence.
+ * working and idle otherwise.
  */
 export function useRemoteUploadJobs(seasonId: string) {
 	const { data } = useQuery({

@@ -6,13 +6,14 @@ import type {
 	PublicEpisode,
 } from "./episode.ts"
 
-export interface AttachBunnyInput {
-	bunnyVideoId: string
-	bunnyLibraryId: string
-	embedUrl: string
-	playbackUrl: string
-	thumbnailUrl: string
+/** Persists playback metadata after an R2 upload. */
+export interface AttachVideoInput {
+	storageProvider: string
 	status: EpisodeStatus
+	mp4Url?: string | null
+	hlsUrl?: string | null
+	thumbnailUrl?: string | null
+	publishedAt?: Date | null
 }
 
 export interface EpisodeRepository {
@@ -20,11 +21,10 @@ export interface EpisodeRepository {
 	listPublicBySeason(seasonId: string): Promise<PublicEpisode[]>
 	findPublicBySlug(slug: string): Promise<Episode | null>
 	findById(id: string): Promise<Episode | null>
-	findByBunnyVideoId(videoId: string): Promise<Episode | null>
 	slugExists(slug: string): Promise<boolean>
 	create(data: NewEpisode): Promise<Episode>
 	update(id: string, data: EpisodeUpdate): Promise<Episode | null>
-	attachBunny(id: string, data: AttachBunnyInput): Promise<Episode | null>
+	attachVideo(id: string, data: AttachVideoInput): Promise<Episode | null>
 	setStatus(
 		id: string,
 		status: EpisodeStatus,

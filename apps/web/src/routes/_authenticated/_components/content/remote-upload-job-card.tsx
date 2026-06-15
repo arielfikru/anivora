@@ -203,8 +203,8 @@ export function RemoteUploadJobCard({ job, onChange }: Props) {
 
 			{isJobActive(job.status) && job.status === "uploading" && (
 				<p className="text-muted-foreground text-xs">
-					Uploading to Bunny… episodes flip to “ready” automatically once Bunny
-					finishes processing.
+					Transcoding and uploading to R2… episodes flip to “ready”
+					automatically once each file finishes.
 				</p>
 			)}
 		</div>

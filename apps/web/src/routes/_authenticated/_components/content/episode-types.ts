@@ -7,6 +7,6 @@ export interface EpisodeRow {
 	slug: string
 	description: string | null
 	durationSeconds: number | null
-	bunnyVideoId: string | null
+	mp4Url: string | null
 	status: string
 }

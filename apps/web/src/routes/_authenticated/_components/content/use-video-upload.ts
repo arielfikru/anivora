@@ -1,9 +1,6 @@
 import * as React from "react"
-import * as tus from "tus-js-client"
 
-import { client } from "#/libs/orpc/client"
-
-export type UploadPhase = "idle" | "uploading" | "processing" | "failed"
+export type UploadPhase = "idle" | "uploading" | "failed"
 
 export interface UploadState {
 	phase: UploadPhase
@@ -21,11 +18,20 @@ const initial: UploadState = {
 	error: null,
 }
 
+function parseError(xhr: XMLHttpRequest): string {
+	try {
+		const body = JSON.parse(xhr.responseText) as { error?: string }
+		return body.error ?? `Upload failed (${xhr.status})`
+	} catch {
+		return `Upload failed (${xhr.status})`
+	}
+}
+
 /**
- * Video files are uploaded directly to Bunny Stream over the TUS resumable
- * protocol, bypassing our origin and any CDN request-body cap (Cloudflare's
- * free tier rejects bodies over 100MB). The server only mints a short-lived,
- * signed ticket — the API key never reaches the browser.
+ * Uploads a video file to the server, which transcodes it to mp4 and stores it
+ * in Cloudflare R2. The episode is playable as soon as the request resolves —
+ * no separate processing step. Large files should use remote upload instead,
+ * since this request passes through the origin's body-size limit.
  */
 export function useVideoUpload(onComplete: () => void) {
 	const [state, setState] = React.useState<UploadState>(initial)
@@ -33,7 +39,7 @@ export function useVideoUpload(onComplete: () => void) {
 	const reset = React.useCallback(() => setState(initial), [])
 
 	const upload = React.useCallback(
-		async (episodeId: string, file: File) => {
+		(episodeId: string, file: File) => {
 			setState({
 				phase: "uploading",
 				progress: 0,
@@ -41,38 +47,31 @@ export function useVideoUpload(onComplete: () => void) {
 				size: file.size,
 				error: null,
 			})
-			try {
-				const ticket = await client.admin.createEpisodeUpload({ episodeId })
-				const tusUpload = new tus.Upload(file, {
-					endpoint: ticket.endpoint,
-					retryDelays: [0, 3000, 5000, 10000, 20000],
-					headers: {
-						AuthorizationSignature: ticket.signature,
-						AuthorizationExpire: String(ticket.expiration),
-						VideoId: ticket.videoId,
-						LibraryId: ticket.libraryId,
-					},
-					metadata: { filetype: file.type, title: file.name },
-					onError: (err) =>
-						setState((s) => ({ ...s, phase: "failed", error: err.message })),
-					onProgress: (uploaded, total) =>
-						setState((s) => ({
-							...s,
-							progress: Math.round((uploaded / total) * 100),
-						})),
-					onSuccess: () => {
-						setState((s) => ({ ...s, phase: "processing", progress: 100 }))
-						onComplete()
-					},
-				})
-				tusUpload.start()
-			} catch (err) {
+			const formData = new FormData()
+			formData.append("file", file)
+
+			const xhr = new XMLHttpRequest()
+			xhr.open("POST", `/api/admin/episodes/${episodeId}/upload`)
+			xhr.withCredentials = true
+			xhr.upload.onprogress = (e) => {
+				if (!e.lengthComputable) return
 				setState((s) => ({
 					...s,
-					phase: "failed",
-					error: err instanceof Error ? err.message : "Upload failed",
+					progress: Math.round((e.loaded / e.total) * 100),
 				}))
 			}
+			xhr.onload = () => {
+				if (xhr.status >= 200 && xhr.status < 300) {
+					setState(initial)
+					onComplete()
+				} else {
+					setState((s) => ({ ...s, phase: "failed", error: parseError(xhr) }))
+				}
+			}
+			xhr.onerror = () => {
+				setState((s) => ({ ...s, phase: "failed", error: "Network error" }))
+			}
+			xhr.send(formData)
 		},
 		[onComplete],
 	)

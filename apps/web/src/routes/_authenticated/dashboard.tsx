@@ -44,7 +44,7 @@ const shortcuts = [
 	},
 	{
 		title: "Uploads",
-		description: "Upload video ke Bunny Stream",
+		description: "Upload video ke Cloudflare R2",
 		url: "/content/uploads",
 		icon: IconUpload,
 	},

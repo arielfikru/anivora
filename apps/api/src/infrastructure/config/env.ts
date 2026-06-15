@@ -17,18 +17,14 @@ const envSchema = z
 		UPLOAD_DIR: z.string().default("./uploads"),
 		UPLOAD_WORK_DIR: z.string().default("./work"),
 		REMOTE_UPLOAD_MAX_BYTES: z.coerce.number().int().positive().optional(),
-		BUNNY_STREAM_LIBRARY_ID: z
-			.string()
-			.min(1, "BUNNY_STREAM_LIBRARY_ID required"),
-		BUNNY_STREAM_API_KEY: z.string().min(1, "BUNNY_STREAM_API_KEY required"),
-		BUNNY_STREAM_CDN_HOSTNAME: z
-			.string()
-			.min(1, "BUNNY_STREAM_CDN_HOSTNAME required"),
-		BUNNY_STREAM_BASE_URL: z
-			.string()
-			.url()
-			.default("https://video.bunnycdn.com"),
-		WEBHOOK_SECRET: z.string().optional(),
+		// Cloudflare R2 (S3-compatible) — the only video storage backend.
+		R2_ACCOUNT_ID: z.string().min(1, "R2_ACCOUNT_ID required"),
+		R2_ACCESS_KEY_ID: z.string().min(1, "R2_ACCESS_KEY_ID required"),
+		R2_SECRET_ACCESS_KEY: z.string().min(1, "R2_SECRET_ACCESS_KEY required"),
+		R2_BUCKET: z.string().min(1, "R2_BUCKET required"),
+		// Public base URL of the bucket (Cloudflare custom domain or r2.dev),
+		// no trailing slash. Playback URLs are `${R2_PUBLIC_URL}/${key}`.
+		R2_PUBLIC_URL: z.string().url(),
 		GOOGLE_CLIENT_ID: z.string().optional(),
 		GOOGLE_CLIENT_SECRET: z.string().optional(),
 		NODE_ENV: z

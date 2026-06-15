@@ -132,6 +132,12 @@ export const episode = pgTable("episode", {
 	bunnyLibraryId: text("bunny_library_id"),
 	playbackUrl: text("playback_url"),
 	embedUrl: text("embed_url"),
+	// Cloudflare R2 progressive playback. mp4Url is the watchable source;
+	// hlsUrl is populated later (Phase 2) once HLS transcode lands. null
+	// storageProvider on legacy rows = bunny.
+	mp4Url: text("mp4_url"),
+	hlsUrl: text("hls_url"),
+	storageProvider: text("storage_provider"),
 	status: text("status").notNull().default("draft"),
 	publishedAt: timestamp("published_at"),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
