@@ -36,6 +36,7 @@ import { makeDeleteSeason } from "./season/delete-season.ts"
 import { makeListSeasons } from "./season/list-seasons.ts"
 import { makeUpdateSeason } from "./season/update-season.ts"
 import { makeCancelRemoteUploadJob } from "./upload/cancel-remote-upload-job.ts"
+import { makeCleanupWorkDirs } from "./upload/cleanup-work-dirs.ts"
 import { makeCreateRemoteUploadJob } from "./upload/create-remote-upload-job.ts"
 import { makeGetRemoteUploadJob } from "./upload/get-remote-upload-job.ts"
 import { makeListRemoteUploadJobs } from "./upload/list-remote-upload-jobs.ts"
@@ -158,6 +159,10 @@ function buildUpload(deps: Dependencies) {
 			objectStorage: deps.objectStorage,
 			workRoot: deps.uploadWorkDir,
 			maxBytes: deps.remoteUploadMaxBytes,
+		}),
+		cleanupWorkDirs: makeCleanupWorkDirs({
+			jobRepo: deps.remoteJobRepo,
+			workRoot: deps.uploadWorkDir,
 		}),
 	}
 }

@@ -9,6 +9,11 @@ const POLL_INTERVAL_MS = 5_000
  * guard keeps overlapping ticks from claiming the same job twice.
  */
 export function startRemoteUploadWorker(useCases: UseCases): NodeJS.Timeout {
+	// Sweep scratch dirs orphaned by a crash/restart before draining the queue.
+	void useCases.upload
+		.cleanupWorkDirs()
+		.catch((err) => logger.error({ err }, "work dir sweep failed"))
+
 	let running = false
 	const tick = async (): Promise<void> => {
 		if (running) return

@@ -22,6 +22,19 @@ import { scanVideoFiles } from "./shared/video-scan.ts"
 // a clean work dir, so a crash mid-download self-heals on the next tick.
 const CLAIMABLE = ["pending", "downloading", "extracting", "uploading"] as const
 
+// A job past these states owns no live scratch dir. "scanned" is NOT terminal —
+// it still holds downloaded files the upload phase consumes.
+export const TERMINAL: readonly string[] = ["completed", "failed", "canceled"]
+
+// Statuses whose scratch dir must be preserved (in-flight or awaiting mapping).
+export const ACTIVE_WORK: readonly string[] = [
+	"pending",
+	"downloading",
+	"extracting",
+	"scanned",
+	"uploading",
+]
+
 export interface ProcessRemoteUploadJobsDeps {
 	jobRepo: RemoteUploadJobRepository
 	episodeRepo: EpisodeRepository
@@ -193,8 +206,6 @@ export function makeProcessRemoteUploadJobs(deps: ProcessRemoteUploadJobsDeps) {
 			error: failed.length ? `${failed.length} file(s) failed` : null,
 			files,
 		})
-		if (!failed.length && job.workDir)
-			await rm(job.workDir, { recursive: true, force: true })
 	}
 
 	return async (): Promise<{ processed: number }> => {
@@ -210,6 +221,13 @@ export function makeProcessRemoteUploadJobs(deps: ProcessRemoteUploadJobsDeps) {
 				error: err instanceof Error ? err.message : "Job failed",
 			})
 		}
+		// Reclaim the scratch dir once the job reaches a terminal state. A
+		// "scanned" job keeps its dir because the upload phase still needs the
+		// downloaded/extracted files; failed/canceled jobs are never re-claimed,
+		// so their dir is pure garbage (the error is already persisted in the DB).
+		const fresh = await deps.jobRepo.findById(job.id)
+		if (fresh?.workDir && TERMINAL.includes(fresh.status))
+			await rm(fresh.workDir, { recursive: true, force: true })
 		return { processed: 1 }
 	}
 }
