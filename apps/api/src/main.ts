@@ -134,6 +134,42 @@ registerImageRoutes(app, { auth, uploadDir: env.UPLOAD_DIR })
 
 registerSitemapRoutes(app, { animeRepo, webOrigin: WEB_ORIGIN })
 
+// Same-origin video proxy for legacy smart-TV browsers. Old TV WebKit loads the
+// site fine but its dated TLS stack often can't reach the cross-origin R2 public
+// host (pub-*.r2.dev) directly, so the <video> stays black at 0:00. Streaming the
+// episode mp4 through our own origin sidesteps that. Range is forwarded so the TV
+// can seek and start playing mid-download.
+app.on(["GET", "HEAD"], "/v/:slug", async (c) => {
+	const slug = c.req.param("slug")
+	const episode = await episodeRepo.findPublicBySlug(slug)
+	const src = episode?.mp4Url ?? episode?.playbackUrl
+	if (!src) return c.notFound()
+	const range = c.req.header("range")
+	const upstream = await fetch(src, {
+		method: c.req.method,
+		headers: range ? { range } : {},
+	})
+	const headers = new Headers()
+	for (const h of [
+		"content-type",
+		"content-length",
+		"content-range",
+		"accept-ranges",
+		"etag",
+		"last-modified",
+	]) {
+		const v = upstream.headers.get(h)
+		if (v) headers.set(h, v)
+	}
+	if (!headers.has("content-type")) headers.set("content-type", "video/mp4")
+	if (!headers.has("accept-ranges")) headers.set("accept-ranges", "bytes")
+	headers.set("cache-control", "public, max-age=3600")
+	return new Response(c.req.method === "HEAD" ? null : upstream.body, {
+		status: upstream.status,
+		headers,
+	})
+})
+
 const buildContext = async (headers: Headers) => {
 	const session = await auth.getSession(headers)
 	return { headers, session, useCases }

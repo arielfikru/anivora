@@ -509,9 +509,11 @@
     api("getEpisode", { slug: slug }, function (res) {
       var ep = res.episode || {};
       var back = animeSlug ? "#/anime/" + animeSlug : "#/";
-      // R2 episodes carry an absolute mp4Url; legacy Bunny episodes a playbackUrl
-      // (HLS) that native TV WebKit can still play. Either is a direct <video> src.
-      var src = ep.mp4Url || ep.playbackUrl || "";
+      // Play through the same-origin proxy (/v/<slug>) rather than the R2 URL
+      // directly: old TV WebKit reaches our domain but often fails TLS to the
+      // cross-origin R2 host. Only build the src when a video actually exists.
+      var hasVideo = ep.mp4Url || ep.playbackUrl;
+      var src = hasVideo ? (ORIGIN + "/v/" + encodeURIComponent(slug)) : "";
 
       findSiblings(animeSlug, slug, function (sib) {
         var prevHash = watchHash(sib.prev, animeSlug);
