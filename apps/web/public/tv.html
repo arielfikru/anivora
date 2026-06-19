@@ -244,10 +244,11 @@
     toast(Math.round(p * 100) + "%");
   }
   function cycleRes() {
+    // R2 serves a single progressive MP4 per episode (no per-resolution
+    // renditions), so there is nothing to cycle. Kept bound so the key is inert
+    // rather than throwing.
     var v = vid(); if (!v) return;
-    var i = (parseInt(v.getAttribute("data-i"), 10) + 1) % MP4_RES.length;
-    window.__tvRes(v.getAttribute("data-base"), i);
-    toast("Kualitas: " + MP4_RES[i]);
+    toast("Kualitas otomatis");
   }
   function playPause(play) {
     var v = vid(); if (!v) return;
@@ -447,8 +448,7 @@
     collect();
   }
 
-  /* ---- player (unchanged: progressive MP4 via origin proxy) ---- */
-  var MP4_RES = ["720p", "480p", "360p", "240p", "1080p"];
+  /* ---- player (progressive MP4 served directly from Cloudflare R2) ---- */
   function goFullscreen(v) {
     try {
       if (v.webkitEnterFullscreen) { v.webkitEnterFullscreen(); return; }
@@ -457,22 +457,19 @@
       if (fn) fn.call(v);
     } catch (e) {}
   }
-  window.__tvRes = function (base, i) {
+  // `url` is the episode's mp4Url (R2) — a single absolute progressive MP4. The
+  // legacy Bunny per-resolution scheme (/v/<guid>/play_720p.mp4) is gone.
+  window.__tvPlay = function (url) {
     var box = document.getElementById("vbox");
     box.innerHTML = '<video id="vid" class="focusable" controls autoplay playsinline ' +
-      'data-base="' + esc(base) + '" data-i="' + i + '" ' +
-      'onerror="window.__tvNext(this)" onended="window.__tvGoNext()" ' +
+      'onended="window.__tvGoNext()" ' +
       'style="width:100%;max-width:1280px;background:#000" ' +
-      'src="' + esc(base) + "play_" + MP4_RES[i] + '.mp4"></video>';
+      'src="' + esc(url) + '"></video>';
     var v = document.getElementById("vid");
     try { v.play(); } catch (e) {}
     var fired = false;
     v.addEventListener("playing", function () { if (fired) return; fired = true; goFullscreen(v); });
     setTimeout(function () { if (!fired) { fired = true; goFullscreen(v); } }, 800);
-  };
-  window.__tvNext = function (v) {
-    var i = parseInt(v.getAttribute("data-i"), 10) + 1;
-    if (i < MP4_RES.length) window.__tvRes(v.getAttribute("data-base"), i);
   };
   window.__tvEmbed = function (url) {
     document.getElementById("vbox").innerHTML =
@@ -512,8 +509,9 @@
     api("getEpisode", { slug: slug }, function (res) {
       var ep = res.episode || {};
       var back = animeSlug ? "#/anime/" + animeSlug : "#/";
-      var guid = ep.bunnyVideoId || "";
-      var base = guid ? (ORIGIN + "/v/" + guid + "/") : "";
+      // R2 episodes carry an absolute mp4Url; legacy Bunny episodes a playbackUrl
+      // (HLS) that native TV WebKit can still play. Either is a direct <video> src.
+      var src = ep.mp4Url || ep.playbackUrl || "";
 
       findSiblings(animeSlug, slug, function (sib) {
         var prevHash = watchHash(sib.prev, animeSlug);
@@ -548,7 +546,7 @@
           '<span class="k">1–9</span> loncat 10–90%<br>' +
           '<span class="k">SUBTITLE</span> ganti kualitas · <span class="k">Back</span> kembali</div>';
         app.innerHTML = h; collect();
-        if (base) window.__tvRes(base, 0);
+        if (src) window.__tvPlay(src);
         else app.innerHTML += '<div class="muted">Video belum tersedia.</div>';
       });
     }, showErr);
