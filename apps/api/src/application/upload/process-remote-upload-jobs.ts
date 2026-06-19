@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs"
-import { mkdir, rm, stat } from "node:fs/promises"
+import { mkdir, rename, rm, stat } from "node:fs/promises"
 import { basename, join, relative } from "node:path"
 
 import type { EpisodeRepository } from "#/domain/catalog/episode-repository.ts"
@@ -90,13 +90,27 @@ export function makeProcessRemoteUploadJobs(deps: ProcessRemoteUploadJobsDeps) {
 			},
 		})
 
+		// The dest name was derived from the URL before the response existed, so a
+		// single non-archive file often lands without a video extension (Drive
+		// "download", pixeldrain "<id>"). Re-derive from Content-Disposition now and
+		// rename, otherwise the extension-based video scan misses it and the job
+		// fails with "No video files found". Archives are detected by magic bytes,
+		// so they were unaffected — this only rescues bare video files.
+		let scanTarget = dest
+		const realName = filenameFrom(job.sourceUrl, result.contentDisposition)
+		if (realName && realName !== basename(dest)) {
+			const renamed = join(downloadDir, realName)
+			await rename(dest, renamed)
+			scanTarget = renamed
+		}
+
 		let scanRoot = downloadDir
-		const archiveType = await detectArchiveType(dest)
+		const archiveType = await detectArchiveType(scanTarget)
 		if (archiveType) {
 			await deps.jobRepo.update(job.id, { status: "extracting" })
 			const extractDir = join(workDir, "extracted")
 			await mkdir(extractDir, { recursive: true })
-			await extractArchive(dest, extractDir)
+			await extractArchive(scanTarget, extractDir)
 			scanRoot = extractDir
 		}
 
