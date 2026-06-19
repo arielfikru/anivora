@@ -33,10 +33,7 @@ async function probeCodec(
  * transcoded.
  */
 export async function transcodeToMp4(src: string, dest: string): Promise<void> {
-	const [video, audio] = await Promise.all([
-		probeCodec(src, "v:0"),
-		probeCodec(src, "a:0"),
-	])
+	const video = await probeCodec(src, "v:0")
 
 	const args = ["-y", "-i", src, "-map", "0:v:0", "-map", "0:a:0?"]
 	if (video === "h264") args.push("-c:v", "copy")
@@ -51,8 +48,11 @@ export async function transcodeToMp4(src: string, dest: string): Promise<void> {
 			"-pix_fmt",
 			"yuv420p",
 		)
-	if (audio === "aac") args.push("-c:a", "copy")
-	else args.push("-c:a", "aac", "-b:a", "192k")
+	// Always normalize audio to AAC-LC. ffprobe reports codec_name "aac" for both
+	// LC and HE-AAC, so a copy-when-aac shortcut silently passes HE-AAC through.
+	// Linux/Chromium and TVs decode HE-AAC, but macOS browsers reject it and fail
+	// the whole media element (stuck at 0:00). Re-encoding audio is cheap.
+	args.push("-c:a", "aac", "-profile:a", "aac_low", "-b:a", "192k")
 	args.push("-movflags", "+faststart", dest)
 
 	await exec("ffmpeg", args, { maxBuffer: 16 * 1024 * 1024 })
