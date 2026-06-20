@@ -36,7 +36,13 @@ export async function transcodeToMp4(src: string, dest: string): Promise<void> {
 	const video = await probeCodec(src, "v:0")
 
 	const args = ["-y", "-i", src, "-map", "0:v:0", "-map", "0:a:0?"]
-	if (video === "h264") args.push("-c:v", "copy")
+	// Many fansub sources tag H.264 720p as Level 5.0 (a 4K level). Old smart-TV
+	// decoders cap at L4.x and refuse the stream (black, stuck at 0:00). The
+	// bitstream itself fits L4.0, so when stream-copying we relabel the SPS level
+	// via the h264_metadata bitstream filter (no re-encode); when transcoding we
+	// pin -level 4.0 directly.
+	if (video === "h264")
+		args.push("-c:v", "copy", "-bsf:v", "h264_metadata=level=4")
 	else
 		args.push(
 			"-c:v",
@@ -47,6 +53,10 @@ export async function transcodeToMp4(src: string, dest: string): Promise<void> {
 			"20",
 			"-pix_fmt",
 			"yuv420p",
+			"-profile:v",
+			"high",
+			"-level:v",
+			"4.0",
 		)
 	// Always normalize audio to AAC-LC. ffprobe reports codec_name "aac" for both
 	// LC and HE-AAC, so a copy-when-aac shortcut silently passes HE-AAC through.
