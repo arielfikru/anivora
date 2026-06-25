@@ -93,14 +93,14 @@ function DetailHero({
 			</div>
 			<div className="absolute inset-0 bg-gradient-to-r from-anv-bg via-anv-bg/75 to-transparent" />
 			<div className="absolute inset-0 bg-gradient-to-t from-anv-bg via-transparent to-transparent" />
-			<div className="relative flex flex-col gap-5 p-6 pt-16 lg:p-12 lg:pt-24">
+			<div className="relative flex min-h-[54svh] flex-col justify-end gap-5 p-4 pt-20 pb-8 sm:p-6 lg:min-h-[50vh] lg:p-12 lg:pt-24">
 				<div className="max-w-2xl space-y-3">
 					{anime.isFanmade ? (
 						<span className="inline-block rounded-md bg-anv-surface-2 px-2 py-0.5 text-xs font-semibold text-anv-muted">
 							Fanmade
 						</span>
 					) : null}
-					<h1 className="display-title text-3xl font-bold text-anv-text lg:text-5xl">
+					<h1 className="display-title text-3xl font-bold leading-tight text-anv-text sm:text-4xl lg:text-5xl">
 						{anime.title}
 					</h1>
 					{meta ? (
@@ -112,19 +112,19 @@ function DetailHero({
 						</p>
 					) : null}
 				</div>
-				<div className="flex flex-wrap gap-3">
+				<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
 					{firstEpisodeSlug ? (
 						<Link
 							to="/watch/$slug"
 							params={{ slug: firstEpisodeSlug }}
 							search={{ anime: anime.slug }}
 							data-focusable
-							className="inline-flex h-12 items-center gap-2 rounded-lg bg-anv-red px-7 font-semibold text-white outline-none transition hover:bg-anv-red-hover focus-visible:scale-105"
+							className="inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-anv-red px-6 font-semibold text-white outline-none transition hover:bg-anv-red-hover focus-visible:scale-105 sm:px-7"
 						>
 							<Play className="size-5 fill-current" /> Putar Episode 1
 						</Link>
 					) : null}
-					<FavoriteButton anime={anime} />
+					<FavoriteButton anime={anime} className="justify-center sm:justify-start" />
 				</div>
 			</div>
 		</section>

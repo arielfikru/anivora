@@ -9,6 +9,13 @@ interface ICoverImageProps {
 	fallback?: string
 }
 
+function resolvePublicAsset(url: string): string {
+	if (!url.startsWith("/") || url.startsWith("//")) return url
+	const base = import.meta.env.BASE_URL.replace(/\/$/, "")
+	if (!base || base === "/") return url
+	return `${base}${url}`
+}
+
 /**
  * Image with a default placeholder, then a gradient + initials fallback when
  * neither `src` nor `fallback` is set. Used by cards, hero and detail art.
@@ -23,7 +30,7 @@ export function CoverImage({
 	if (resolved) {
 		return (
 			<img
-				src={resolved}
+				src={resolvePublicAsset(resolved)}
 				alt={title}
 				loading="lazy"
 				className={cn("h-full w-full object-cover", className)}

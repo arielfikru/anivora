@@ -43,9 +43,9 @@ function EpisodeRow({
 			params={{ slug: episode.slug }}
 			search={{ anime: animeSlug }}
 			data-focusable
-			className="group flex items-center gap-4 rounded-xl border border-white/10 bg-anv-surface p-3 outline-none transition hover:border-anv-red/60 focus-visible:border-anv-red focus-visible:scale-[1.01]"
+			className="group flex flex-col gap-3 rounded-xl border border-white/10 bg-anv-surface p-3 outline-none transition hover:border-anv-red/60 focus-visible:border-anv-red focus-visible:scale-[1.01] sm:flex-row sm:items-center sm:gap-4"
 		>
-			<div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded-lg sm:w-40">
+			<div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-lg sm:w-40">
 				<CoverImage
 					src={episode.thumbnailUrl}
 					title={episode.title ?? episode.episodeCode}

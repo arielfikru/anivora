@@ -13,7 +13,9 @@ export function StreamShell({ children }: IStreamShellProps) {
 	return (
 		<div className="min-h-screen bg-anv-bg text-anv-text">
 			<IconRail />
-			<main className="ml-[72px] min-h-screen pb-16">{children}</main>
+			<main className="min-h-screen pb-24 md:ml-[72px] md:pb-16">
+				{children}
+			</main>
 		</div>
 	)
 }

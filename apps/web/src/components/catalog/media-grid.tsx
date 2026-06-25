@@ -21,7 +21,7 @@ export function MediaGrid({
 	}
 
 	return (
-		<div className="grid grid-cols-2 gap-4 px-4 py-2 sm:grid-cols-3 lg:grid-cols-4 lg:px-10 xl:grid-cols-5">
+		<div className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 py-2 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:px-10 xl:grid-cols-5 2xl:grid-cols-6">
 			{items.map((item) => (
 				<MediaCard
 					key={item.id}
@@ -30,6 +30,7 @@ export function MediaGrid({
 					title={item.title}
 					imageUrl={item.coverImageUrl ?? item.bannerImageUrl}
 					meta={metaLine([item.releaseYear, ratingLabel(item.contentRating)])}
+					variant="grid"
 				/>
 			))}
 		</div>

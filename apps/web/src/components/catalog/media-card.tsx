@@ -9,6 +9,8 @@ export interface IMediaCardProps {
 	imageUrl: string | null
 	meta?: string
 	isNew?: boolean
+	className?: string
+	variant?: "carousel" | "grid"
 	/** 0..1 — renders a bottom red progress bar when > 0. */
 	progress?: number
 }
@@ -24,6 +26,8 @@ export function MediaCard({
 	imageUrl,
 	meta,
 	isNew,
+	className,
+	variant = "carousel",
 	progress = 0,
 }: IMediaCardProps) {
 	return (
@@ -32,10 +36,14 @@ export function MediaCard({
 			params={params}
 			data-focusable
 			className={cn(
-				"group block w-[180px] shrink-0 outline-none sm:w-[220px] lg:w-[280px]",
+				"group block min-w-0 outline-none",
+				variant === "carousel"
+					? "w-[180px] shrink-0 sm:w-[220px] lg:w-[280px]"
+					: "w-full sm:w-full lg:w-full",
 				"rounded-xl transition-transform duration-200",
 				"focus-visible:scale-[1.06] hover:scale-[1.04]",
 				"focus-within:scale-[1.06] focus-visible:z-10 hover:z-10",
+				className,
 			)}
 		>
 			<div

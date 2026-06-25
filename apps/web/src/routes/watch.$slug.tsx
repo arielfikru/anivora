@@ -196,9 +196,9 @@ function WatchHeader({
 }) {
 	const line = metaLine([title, episode.episodeCode, episode.title])
 	return (
-		<header className="flex items-center gap-4 p-4 lg:px-10">
+		<header className="flex min-w-0 items-center gap-3 p-3 sm:gap-4 sm:p-4 lg:px-10">
 			<BackButton animeSlug={animeSlug} />
-			<p className="truncate font-semibold">{line}</p>
+			<p className="min-w-0 truncate text-sm font-semibold sm:text-base">{line}</p>
 		</header>
 	)
 }
@@ -214,13 +214,13 @@ function BackButton({ animeSlug }: { animeSlug?: string }) {
 				data-focusable
 				className={className}
 			>
-				<ArrowLeft className="size-5" /> Kembali
+				<ArrowLeft className="size-5" /> <span className="hidden sm:inline">Kembali</span>
 			</Link>
 		)
 	}
 	return (
 		<Link to="/" data-focusable className={className}>
-			<ArrowLeft className="size-5" /> Beranda
+			<ArrowLeft className="size-5" /> <span className="hidden sm:inline">Beranda</span>
 		</Link>
 	)
 }
@@ -252,7 +252,7 @@ function NativePlayer({
 	return (
 		<div
 			ref={containerRef}
-			className="aspect-video w-full max-w-6xl overflow-hidden rounded-xl bg-black"
+			className="aspect-video w-full max-w-6xl overflow-hidden rounded-lg bg-black sm:rounded-xl"
 		>
 			{/* biome-ignore lint/a11y/useMediaCaption: subtitle track not yet available */}
 			<video
@@ -296,7 +296,7 @@ function Player({
 	return (
 		<div
 			ref={containerRef}
-			className="relative aspect-video w-full max-w-6xl overflow-hidden rounded-xl bg-anv-surface"
+			className="relative aspect-video w-full max-w-6xl overflow-hidden rounded-lg bg-anv-surface sm:rounded-xl"
 		>
 			<CoverImage
 				src={episode.thumbnailUrl}
@@ -324,7 +324,7 @@ function WatchFooter({
 	onFullscreen: () => void
 }) {
 	return (
-		<footer className="flex items-center justify-between gap-3 p-4 lg:px-10">
+		<footer className="grid grid-cols-2 gap-3 p-3 sm:flex sm:items-center sm:justify-between sm:p-4 lg:px-10">
 			<NavLink episode={prev} animeSlug={animeSlug} dir="prev" />
 			<FullscreenButton onClick={onFullscreen} />
 			<NavLink episode={next} animeSlug={animeSlug} dir="next" />
@@ -338,7 +338,7 @@ function FullscreenButton({ onClick }: { onClick: () => void }) {
 			type="button"
 			onClick={onClick}
 			data-focusable
-			className="inline-flex h-14 items-center gap-3 rounded-xl bg-anv-red px-8 text-lg font-bold text-white outline-none transition hover:bg-anv-red-hover focus-visible:scale-105 focus-visible:ring-2 focus-visible:ring-white"
+			className="order-first col-span-2 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-anv-red px-5 text-base font-bold text-white outline-none transition hover:bg-anv-red-hover focus-visible:scale-105 focus-visible:ring-2 focus-visible:ring-white sm:order-none sm:h-14 sm:gap-3 sm:px-8 sm:text-lg"
 		>
 			<Maximize className="size-6" />
 			Layar Penuh
@@ -356,7 +356,7 @@ function NavLink({
 	dir: "prev" | "next"
 }) {
 	const className =
-		"inline-flex h-12 items-center gap-2 rounded-lg bg-anv-surface px-6 font-semibold outline-none transition hover:bg-anv-surface-2 focus-visible:scale-105 disabled:opacity-40"
+		"inline-flex h-12 min-w-0 items-center justify-center gap-2 rounded-lg bg-anv-surface px-3 text-sm font-semibold outline-none transition hover:bg-anv-surface-2 focus-visible:scale-105 disabled:opacity-40 sm:px-6 sm:text-base"
 	if (!episode) {
 		return (
 			<span
@@ -364,7 +364,9 @@ function NavLink({
 				aria-disabled="true"
 			>
 				{dir === "prev" ? <ChevronLeft className="size-5" /> : null}
-				{dir === "prev" ? "Sebelumnya" : "Berikutnya"}
+				<span className="truncate">
+					{dir === "prev" ? "Sebelumnya" : "Berikutnya"}
+				</span>
 				{dir === "next" ? <ChevronRight className="size-5" /> : null}
 			</span>
 		)
@@ -378,7 +380,9 @@ function NavLink({
 			className={className}
 		>
 			{dir === "prev" ? <ChevronLeft className="size-5" /> : null}
-			{dir === "prev" ? "Episode Sebelumnya" : "Episode Berikutnya"}
+			<span className="truncate">
+				{dir === "prev" ? "Episode Sebelumnya" : "Episode Berikutnya"}
+			</span>
 			{dir === "next" ? <ChevronRight className="size-5" /> : null}
 		</Link>
 	)
