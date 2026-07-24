@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, inArray, ne, sql } from "drizzle-orm"
+import { and, desc, eq, ilike, inArray, isNotNull, ne, sql } from "drizzle-orm"
 
 import type { AnimeListFilters, AnimeListItem } from "#/domain/catalog/anime.ts"
 import type { AnimeRepository } from "#/domain/catalog/anime-repository.ts"
@@ -60,12 +60,20 @@ export function createAnimeRepository(db: Db): AnimeRepository {
 			return db
 				.select(listColumns)
 				.from(schema.anime)
-				.orderBy(desc(schema.anime.createdAt))
+				.orderBy(desc(schema.anime.updatedAt), desc(schema.anime.createdAt))
+		},
+
+		async listSourced() {
+			const rows = await db
+				.select()
+				.from(schema.anime)
+				.where(isNotNull(schema.anime.sourceProvider))
+			return rows.map(toAnime)
 		},
 
 		async listPublished(filters): Promise<AnimeListItem[]> {
 			return publishedListQuery(db, filters)
-				.orderBy(desc(schema.anime.createdAt))
+				.orderBy(desc(schema.anime.updatedAt), desc(schema.anime.createdAt))
 				.limit(filters.limit)
 				.offset(filters.offset)
 		},
@@ -108,7 +116,7 @@ export function createAnimeRepository(db: Db): AnimeRepository {
 						ilike(schema.anime.title, `%${query}%`),
 					),
 				)
-				.orderBy(desc(schema.anime.createdAt))
+				.orderBy(desc(schema.anime.updatedAt), desc(schema.anime.createdAt))
 				.limit(limit)
 		},
 
@@ -127,6 +135,21 @@ export function createAnimeRepository(db: Db): AnimeRepository {
 				.select()
 				.from(schema.anime)
 				.where(eq(schema.anime.id, id))
+				.limit(1)
+				.then((r) => r[0])
+			return row ? toAnime(row) : null
+		},
+
+		async findBySource(provider, sourceId) {
+			const row = await db
+				.select()
+				.from(schema.anime)
+				.where(
+					and(
+						eq(schema.anime.sourceProvider, provider),
+						eq(schema.anime.sourceId, sourceId),
+					),
+				)
 				.limit(1)
 				.then((r) => r[0])
 			return row ? toAnime(row) : null
@@ -159,6 +182,20 @@ export function createAnimeRepository(db: Db): AnimeRepository {
 				.returning()
 				.then((r) => r[0])
 			return row ? toAnime(row) : null
+		},
+
+		async setCoverImageUrl(id, coverImageUrl) {
+			await db
+				.update(schema.anime)
+				.set({ coverImageUrl })
+				.where(eq(schema.anime.id, id))
+		},
+
+		async setUpdatedAt(id, updatedAt) {
+			await db
+				.update(schema.anime)
+				.set({ updatedAt })
+				.where(eq(schema.anime.id, id))
 		},
 
 		async delete(id) {

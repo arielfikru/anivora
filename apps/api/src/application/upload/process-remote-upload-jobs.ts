@@ -11,6 +11,7 @@ import type {
 	RemoteUploadJob,
 } from "#/domain/upload/remote-upload-job.ts"
 import { logger } from "#/infrastructure/observability/logger.ts"
+import type { ProviderMediaSource } from "#/infrastructure/content/providers/provider.ts"
 import { resolveReadyStatus } from "../episode/resolve-ready-status.ts"
 import { episodeVideoKey } from "../episode/video-key.ts"
 import { detectArchiveType, extractArchive } from "./shared/archive.ts"
@@ -42,6 +43,11 @@ export interface ProcessRemoteUploadJobsDeps {
 	objectStorage: ObjectStorage
 	workRoot: string
 	maxBytes?: number
+	resolveMirror?: (
+		provider: string,
+		episodeUrl: string,
+	) => Promise<ProviderMediaSource>
+	gofileApiToken?: string
 }
 
 function filenameFrom(url: string, contentDisposition: string | null): string {
@@ -74,11 +80,16 @@ export function makeProcessRemoteUploadJobs(deps: ProcessRemoteUploadJobsDeps) {
 			bytesDownloaded: 0,
 			error: null,
 		})
+		if (job.targetEpisodeId)
+			await deps.episodeRepo.setStatus(job.targetEpisodeId, "processing")
 
 		const dest = join(downloadDir, filenameFrom(job.sourceUrl, null))
 		let lastTick = 0
 		const result = await downloadToFile(job.sourceType, job.sourceUrl, dest, {
 			maxBytes: deps.maxBytes,
+			sourceProvider: job.sourceProvider,
+			resolveMirror: deps.resolveMirror,
+			gofileApiToken: deps.gofileApiToken,
 			onProgress: (downloaded, total) => {
 				// Throttle DB writes to ~every 8 MB.
 				if (downloaded - lastTick < 8 * 1024 * 1024) return
@@ -97,7 +108,7 @@ export function makeProcessRemoteUploadJobs(deps: ProcessRemoteUploadJobsDeps) {
 		// fails with "No video files found". Archives are detected by magic bytes,
 		// so they were unaffected — this only rescues bare video files.
 		let scanTarget = dest
-		const realName = filenameFrom(job.sourceUrl, result.contentDisposition)
+		const realName = filenameFrom(result.finalUrl, result.contentDisposition)
 		if (realName && realName !== basename(dest)) {
 			const renamed = join(downloadDir, realName)
 			await rename(dest, renamed)
@@ -120,16 +131,18 @@ export function makeProcessRemoteUploadJobs(deps: ProcessRemoteUploadJobsDeps) {
 				status: "failed",
 				error: "No video files found in source",
 			})
+			if (job.targetEpisodeId)
+				await deps.episodeRepo.setStatus(job.targetEpisodeId, "failed")
 			return
 		}
 
 		const prefix = relative(workDir, scanRoot)
-		const files: RemoteUploadFile[] = scanned.map((f) => ({
+		const files: RemoteUploadFile[] = scanned.map((f, index) => ({
 			relPath: join(prefix, f.relPath),
 			sizeBytes: f.sizeBytes,
 			suggestedNumber: f.suggestedNumber,
 			episodeNumber: null,
-			episodeId: null,
+			episodeId: index === 0 ? job.targetEpisodeId : null,
 			uploadStatus: "pending",
 			bytesSent: 0,
 			videoKey: null,
@@ -137,7 +150,7 @@ export function makeProcessRemoteUploadJobs(deps: ProcessRemoteUploadJobsDeps) {
 		}))
 
 		await deps.jobRepo.update(job.id, {
-			status: "scanned",
+			status: job.targetEpisodeId ? "uploading" : "scanned",
 			files,
 			bytesDownloaded: result.bytesTotal,
 			bytesTotal: result.bytesTotal,
@@ -220,6 +233,8 @@ export function makeProcessRemoteUploadJobs(deps: ProcessRemoteUploadJobsDeps) {
 			error: failed.length ? `${failed.length} file(s) failed` : null,
 			files,
 		})
+		if (failed.length && job.targetEpisodeId)
+			await deps.episodeRepo.setStatus(job.targetEpisodeId, "failed")
 	}
 
 	return async (): Promise<{ processed: number }> => {
@@ -234,6 +249,8 @@ export function makeProcessRemoteUploadJobs(deps: ProcessRemoteUploadJobsDeps) {
 				status: "failed",
 				error: err instanceof Error ? err.message : "Job failed",
 			})
+			if (job.targetEpisodeId)
+				await deps.episodeRepo.setStatus(job.targetEpisodeId, "failed")
 		}
 		// Reclaim the scratch dir once the job reaches a terminal state. A
 		// "scanned" job keeps its dir because the upload phase still needs the

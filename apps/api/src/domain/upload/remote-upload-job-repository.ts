@@ -9,6 +9,7 @@ export interface RemoteUploadJobRepository {
 	create(data: NewRemoteUploadJob): Promise<RemoteUploadJob>
 	findById(id: string): Promise<RemoteUploadJob | null>
 	listBySeason(seasonId: string): Promise<RemoteUploadJob[]>
+	findActiveByTargetEpisode(episodeId: string): Promise<RemoteUploadJob | null>
 	update(
 		id: string,
 		data: RemoteUploadJobUpdate,

@@ -56,11 +56,37 @@ function EpisodeRow({
 				</span>
 			</div>
 			<div className="min-w-0 flex-1">
-				<p className="truncate font-semibold text-anv-text">
-					{episode.title ?? `Episode ${episode.episodeNumber}`}
-				</p>
+				<div className="flex items-center justify-between gap-3">
+					<p className="truncate font-semibold text-anv-text">
+						{episode.title ?? `Episode ${episode.episodeNumber}`}
+					</p>
+					<EpisodeReadyBadge ready={episode.isReady} status={episode.status} />
+				</div>
 				<p className="truncate text-sm text-anv-muted">{meta}</p>
 			</div>
 		</Link>
+	)
+}
+
+function EpisodeReadyBadge({
+	ready,
+	status,
+}: {
+	ready: boolean
+	status?: string
+}) {
+	const processing = !ready && status === "processing"
+	return (
+		<span
+			className={
+				ready
+					? "shrink-0 rounded-full border border-emerald-400/40 bg-emerald-400/15 px-2.5 py-1 text-xs font-bold text-emerald-300"
+					: processing
+						? "shrink-0 rounded-full border border-amber-400/40 bg-amber-400/15 px-2.5 py-1 text-xs font-bold text-amber-300"
+						: "shrink-0 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-bold text-anv-muted"
+			}
+		>
+			{ready ? "Ready" : processing ? "Processing" : "Not Ready"}
+		</span>
 	)
 }

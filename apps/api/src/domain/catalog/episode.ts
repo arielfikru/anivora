@@ -26,6 +26,9 @@ export interface Episode {
 	mp4Url: string | null
 	hlsUrl: string | null
 	storageProvider: string | null
+	sourceProvider: string | null
+	sourceId: string | null
+	sourceUrl: string | null
 	status: EpisodeStatus
 	publishedAt: Date | null
 	createdAt: Date
@@ -41,6 +44,8 @@ export interface PublicEpisode {
 	durationSeconds: number | null
 	thumbnailUrl: string | null
 	status: string
+	/** True only when this episode already has a playable MP4 or legacy stream. */
+	isReady: boolean
 }
 
 export interface NewEpisode {
@@ -53,6 +58,9 @@ export interface NewEpisode {
 	description?: string | null
 	durationSeconds?: number | null
 	thumbnailUrl?: string | null
+	sourceProvider?: string | null
+	sourceId?: string | null
+	sourceUrl?: string | null
 	status?: EpisodeStatus
 }
 

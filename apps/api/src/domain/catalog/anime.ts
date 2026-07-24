@@ -20,6 +20,9 @@ export interface Anime {
 	isFanmade: boolean
 	requiresAttribution: boolean
 	attributionText: string | null
+	sourceProvider: string | null
+	sourceId: string | null
+	sourceUrl: string | null
 	createdAt: Date
 	updatedAt: Date
 }
@@ -53,6 +56,9 @@ export interface NewAnime {
 	isFanmade?: boolean
 	requiresAttribution?: boolean
 	attributionText?: string | null
+	sourceProvider?: string | null
+	sourceId?: string | null
+	sourceUrl?: string | null
 }
 
 export type AnimeUpdate = Partial<NewAnime>

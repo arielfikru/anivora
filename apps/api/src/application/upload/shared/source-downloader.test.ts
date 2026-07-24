@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { extractDriveId } from "./source-downloader.ts"
+import { extractDriveId, extractGofileId } from "./source-downloader.ts"
 
 describe("extractDriveId", () => {
 	it("parses the /file/d/<id>/view shape", () => {
@@ -25,5 +25,11 @@ describe("extractDriveId", () => {
 
 	it("returns null when no id is present", () => {
 		expect(extractDriveId("https://example.com/video.mp4")).toBeNull()
+	})
+})
+
+describe("extractGofileId", () => {
+	it("extracts ids from public folder links", () => {
+		expect(extractGofileId("https://gofile.io/d/Bfsm1Y")).toBe("Bfsm1Y")
 	})
 })

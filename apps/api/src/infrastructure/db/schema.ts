@@ -6,6 +6,7 @@ import {
 	primaryKey,
 	text,
 	timestamp,
+	uniqueIndex,
 } from "drizzle-orm/pg-core"
 
 export const user = pgTable("user", {
@@ -75,28 +76,44 @@ export const activityLog = pgTable("activity_log", {
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 })
 
-export const anime = pgTable("anime", {
-	id: text("id").primaryKey(),
-	title: text("title").notNull(),
-	slug: text("slug").notNull().unique(),
-	description: text("description"),
-	coverImageUrl: text("cover_image_url"),
-	bannerImageUrl: text("banner_image_url"),
-	status: text("status").notNull().default("draft"),
-	contentRating: text("content_rating").notNull().default("general"),
-	studioName: text("studio_name"),
-	creatorName: text("creator_name"),
-	releaseYear: integer("release_year"),
-	rightsOwnerName: text("rights_owner_name"),
-	licenseType: text("license_type"),
-	permissionDocumentUrl: text("permission_document_url"),
-	isOriginalContent: boolean("is_original_content").notNull().default(false),
-	isFanmade: boolean("is_fanmade").notNull().default(false),
-	requiresAttribution: boolean("requires_attribution").notNull().default(false),
-	attributionText: text("attribution_text"),
-	createdAt: timestamp("created_at").notNull().defaultNow(),
-	updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+export const anime = pgTable(
+	"anime",
+	{
+		id: text("id").primaryKey(),
+		title: text("title").notNull(),
+		slug: text("slug").notNull().unique(),
+		description: text("description"),
+		coverImageUrl: text("cover_image_url"),
+		bannerImageUrl: text("banner_image_url"),
+		status: text("status").notNull().default("draft"),
+		contentRating: text("content_rating").notNull().default("general"),
+		studioName: text("studio_name"),
+		creatorName: text("creator_name"),
+		releaseYear: integer("release_year"),
+		rightsOwnerName: text("rights_owner_name"),
+		licenseType: text("license_type"),
+		permissionDocumentUrl: text("permission_document_url"),
+		isOriginalContent: boolean("is_original_content").notNull().default(false),
+		isFanmade: boolean("is_fanmade").notNull().default(false),
+		requiresAttribution: boolean("requires_attribution")
+			.notNull()
+			.default(false),
+		attributionText: text("attribution_text"),
+		// null = native Anivora content. External catalog adapters use these fields
+		// for idempotent multi-provider synchronization.
+		sourceProvider: text("source_provider"),
+		sourceId: text("source_id"),
+		sourceUrl: text("source_url"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at").notNull().defaultNow(),
+	},
+	(t) => [
+		uniqueIndex("anime_source_provider_id_unique").on(
+			t.sourceProvider,
+			t.sourceId,
+		),
+	],
+)
 
 export const season = pgTable("season", {
 	id: text("id").primaryKey(),
@@ -113,36 +130,48 @@ export const season = pgTable("season", {
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })
 
-export const episode = pgTable("episode", {
-	id: text("id").primaryKey(),
-	animeId: text("anime_id")
-		.notNull()
-		.references(() => anime.id, { onDelete: "cascade" }),
-	seasonId: text("season_id")
-		.notNull()
-		.references(() => season.id, { onDelete: "cascade" }),
-	episodeNumber: integer("episode_number").notNull(),
-	episodeCode: text("episode_code").notNull(),
-	title: text("title"),
-	slug: text("slug").notNull().unique(),
-	description: text("description"),
-	durationSeconds: integer("duration_seconds"),
-	thumbnailUrl: text("thumbnail_url"),
-	bunnyVideoId: text("bunny_video_id"),
-	bunnyLibraryId: text("bunny_library_id"),
-	playbackUrl: text("playback_url"),
-	embedUrl: text("embed_url"),
-	// Cloudflare R2 progressive playback. mp4Url is the watchable source;
-	// hlsUrl is populated later (Phase 2) once HLS transcode lands. null
-	// storageProvider on legacy rows = bunny.
-	mp4Url: text("mp4_url"),
-	hlsUrl: text("hls_url"),
-	storageProvider: text("storage_provider"),
-	status: text("status").notNull().default("draft"),
-	publishedAt: timestamp("published_at"),
-	createdAt: timestamp("created_at").notNull().defaultNow(),
-	updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+export const episode = pgTable(
+	"episode",
+	{
+		id: text("id").primaryKey(),
+		animeId: text("anime_id")
+			.notNull()
+			.references(() => anime.id, { onDelete: "cascade" }),
+		seasonId: text("season_id")
+			.notNull()
+			.references(() => season.id, { onDelete: "cascade" }),
+		episodeNumber: integer("episode_number").notNull(),
+		episodeCode: text("episode_code").notNull(),
+		title: text("title"),
+		slug: text("slug").notNull().unique(),
+		description: text("description"),
+		durationSeconds: integer("duration_seconds"),
+		thumbnailUrl: text("thumbnail_url"),
+		bunnyVideoId: text("bunny_video_id"),
+		bunnyLibraryId: text("bunny_library_id"),
+		playbackUrl: text("playback_url"),
+		embedUrl: text("embed_url"),
+		// Cloudflare R2 progressive playback. mp4Url is the watchable source;
+		// hlsUrl is populated later (Phase 2) once HLS transcode lands. null
+		// storageProvider on legacy rows = bunny.
+		mp4Url: text("mp4_url"),
+		hlsUrl: text("hls_url"),
+		storageProvider: text("storage_provider"),
+		sourceProvider: text("source_provider"),
+		sourceId: text("source_id"),
+		sourceUrl: text("source_url"),
+		status: text("status").notNull().default("draft"),
+		publishedAt: timestamp("published_at"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at").notNull().defaultNow(),
+	},
+	(t) => [
+		uniqueIndex("episode_source_provider_id_unique").on(
+			t.sourceProvider,
+			t.sourceId,
+		),
+	],
+)
 
 export const remoteUploadJob = pgTable("remote_upload_job", {
 	id: text("id").primaryKey(),
@@ -153,7 +182,11 @@ export const remoteUploadJob = pgTable("remote_upload_job", {
 		.notNull()
 		.references(() => anime.id, { onDelete: "cascade" }),
 	sourceType: text("source_type").notNull(),
+	sourceProvider: text("source_provider"),
 	sourceUrl: text("source_url").notNull(),
+	targetEpisodeId: text("target_episode_id").references(() => episode.id, {
+		onDelete: "set null",
+	}),
 	isArchive: boolean("is_archive").notNull().default(false),
 	status: text("status").notNull().default("pending"),
 	error: text("error"),
@@ -166,6 +199,16 @@ export const remoteUploadJob = pgTable("remote_upload_job", {
 	createdBy: text("created_by").references(() => user.id, {
 		onDelete: "set null",
 	}),
+	createdAt: timestamp("created_at").notNull().defaultNow(),
+	updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+export const contentSyncState = pgTable("content_sync_state", {
+	provider: text("provider").primaryKey(),
+	initialSyncCompleted: boolean("initial_sync_completed")
+		.notNull()
+		.default(false),
+	lastSyncedAt: timestamp("last_synced_at"),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 })

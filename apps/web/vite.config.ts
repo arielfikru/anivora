@@ -6,7 +6,10 @@ import viteReact from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import tsconfigPaths from "vite-tsconfig-paths"
 
-const API_URL = process.env.VITE_API_URL ?? "http://localhost:3001"
+// Use the explicit IPv4 loopback in development. On machines where localhost
+// resolves to ::1 first, the API may be bound to 127.0.0.1 (or another service
+// may already own ::1:3001), which makes the dev proxy hit the wrong process.
+const API_URL = process.env.VITE_API_URL ?? "http://127.0.0.1:3001"
 
 export default defineConfig({
 	// Modern SPA is mounted under /app — the bare root serves the static
@@ -50,6 +53,10 @@ export default defineConfig({
 	],
 	server: {
 		proxy: {
+			"/v": {
+				target: API_URL,
+				changeOrigin: true,
+			},
 			"/api": {
 				target: API_URL,
 				changeOrigin: true,

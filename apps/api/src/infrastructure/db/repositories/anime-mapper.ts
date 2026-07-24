@@ -27,6 +27,9 @@ export function toAnime(row: AnimeRow): Anime {
 		isFanmade: row.isFanmade,
 		requiresAttribution: row.requiresAttribution,
 		attributionText: row.attributionText,
+		sourceProvider: row.sourceProvider,
+		sourceId: row.sourceId,
+		sourceUrl: row.sourceUrl,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt,
 	}

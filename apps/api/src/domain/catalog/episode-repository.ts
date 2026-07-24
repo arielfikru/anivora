@@ -21,6 +21,7 @@ export interface EpisodeRepository {
 	listPublicBySeason(seasonId: string): Promise<PublicEpisode[]>
 	findPublicBySlug(slug: string): Promise<Episode | null>
 	findById(id: string): Promise<Episode | null>
+	findBySource(provider: string, sourceId: string): Promise<Episode | null>
 	slugExists(slug: string): Promise<boolean>
 	create(data: NewEpisode): Promise<Episode>
 	update(id: string, data: EpisodeUpdate): Promise<Episode | null>
@@ -30,6 +31,8 @@ export interface EpisodeRepository {
 		status: EpisodeStatus,
 		publishedAt?: Date | null,
 	): Promise<Episode | null>
+	/** Atomically changes a published, source-only episode to processing. */
+	claimForMirror(id: string): Promise<Episode | null>
 	listByStatus(statuses: EpisodeStatus[]): Promise<Episode[]>
 	delete(id: string): Promise<boolean>
 }

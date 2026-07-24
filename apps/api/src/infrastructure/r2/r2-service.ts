@@ -24,10 +24,22 @@ export function createR2Storage(config: R2Config): ObjectStorage {
 	const base = config.publicUrl.replace(/\/+$/, "")
 
 	return {
-		// `size` is part of the port contract (single-PUT impls need it) but
-		// lib-storage derives part sizing from the stream itself, so it's unused
-		// here.
-		async putStream(key, body, _size, contentType) {
+		async putStream(key, body, size, contentType) {
+			// R2 accepts a single PUT up to 5 GiB. Prefer it for normal episodes:
+			// one known-length stream is substantially more reliable on low-bandwidth
+			// VPS links than several concurrent multipart TLS connections.
+			if (size <= 5 * 1024 * 1024 * 1024) {
+				await client.send(
+					new PutObjectCommand({
+						Bucket: config.bucket,
+						Key: key,
+						Body: body,
+						ContentLength: size,
+						ContentType: contentType,
+					}),
+				)
+				return
+			}
 			const upload = new Upload({
 				client,
 				params: {

@@ -16,10 +16,14 @@ import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { requestId } from "hono/request-id"
 import { buildUseCases } from "#/application/use-cases.ts"
+import { animeCoverKey } from "#/application/content/mirror-anime-cover.ts"
 import { createAuthService } from "#/infrastructure/auth/auth-service.ts"
 import { buildAuth } from "#/infrastructure/auth/better-auth.ts"
 import { createRedisCache } from "#/infrastructure/cache/redis.ts"
 import { createR2Storage } from "#/infrastructure/r2/r2-service.ts"
+import { AnoboyProvider } from "#/infrastructure/content/providers/anoboy.ts"
+import { ContentProviderRegistry } from "#/infrastructure/content/providers/provider.ts"
+import { createContentSyncStateStore } from "#/infrastructure/content/sync-state.ts"
 import { env } from "#/infrastructure/config/env.ts"
 import { createDb } from "#/infrastructure/db/client.ts"
 import { logger } from "#/infrastructure/observability/logger.ts"
@@ -34,6 +38,7 @@ import { registerEpisodeUploadRoutes } from "#/presentation/http/episode-upload-
 import { registerImageRoutes } from "#/presentation/http/image-routes.ts"
 import { registerSitemapRoutes } from "#/presentation/http/sitemap-routes.ts"
 import { startRemoteUploadWorker } from "#/presentation/http/remote-upload-worker.ts"
+import { startContentSyncWorker } from "#/presentation/http/content-sync-worker.ts"
 import { buildRouter } from "#/presentation/routers/index.ts"
 
 const db = createDb(env.DATABASE_URL)
@@ -45,6 +50,13 @@ const seasonRepo = createSeasonRepository(db)
 const episodeRepo = createEpisodeRepository(db)
 const genreRepo = createGenreRepository(db)
 const remoteJobRepo = createRemoteUploadJobRepository(db)
+
+const providers = new ContentProviderRegistry(
+	env.MIRROR_ENABLED
+		? [new AnoboyProvider({ baseUrl: env.ANOBOY_BASE_URL })]
+		: [],
+)
+const contentSyncState = createContentSyncStateStore(db)
 
 const cache = createRedisCache(env.REDIS_URL)
 
@@ -72,6 +84,16 @@ const useCases = buildUseCases({
 	objectStorage,
 	uploadWorkDir: env.UPLOAD_WORK_DIR,
 	remoteUploadMaxBytes: env.REMOTE_UPLOAD_MAX_BYTES,
+	providers,
+	contentSyncState,
+	gofileApiToken: env.GOFILE_API_TOKEN,
+	contentSyncOptions: {
+		initialPages: env.MIRROR_INITIAL_PAGES,
+		dailyPages: env.MIRROR_DAILY_PAGES,
+		rightsOwnerName: env.MIRROR_RIGHTS_OWNER_NAME,
+		licenseType: env.MIRROR_LICENSE_TYPE,
+		permissionDocumentUrl: env.MIRROR_PERMISSION_DOCUMENT_URL,
+	},
 })
 
 const router = buildRouter(useCases)
@@ -133,6 +155,36 @@ registerEpisodeUploadRoutes(app, { auth, useCases })
 registerImageRoutes(app, { auth, uploadDir: env.UPLOAD_DIR })
 
 registerSitemapRoutes(app, { animeRepo, webOrigin: WEB_ORIGIN })
+
+// Provider artwork is mirrored to R2, then served from Anivora's own origin so
+// old smart-TV TLS stacks never have to contact Anoboy or R2 directly.
+app.on(["GET", "HEAD"], "/i/:animeId", async (c) => {
+	const animeId = c.req.param("animeId")
+	if (!/^[0-9a-f-]{36}$/i.test(animeId)) return c.notFound()
+	const upstream = await fetch(
+		objectStorage.publicUrl(animeCoverKey(animeId)),
+		{
+			method: c.req.method,
+		},
+	)
+	if (!upstream.ok) return c.notFound()
+	const headers = new Headers({
+		"cache-control": "public, max-age=86400",
+	})
+	for (const name of [
+		"content-type",
+		"content-length",
+		"etag",
+		"last-modified",
+	]) {
+		const value = upstream.headers.get(name)
+		if (value) headers.set(name, value)
+	}
+	return new Response(c.req.method === "HEAD" ? null : upstream.body, {
+		status: 200,
+		headers,
+	})
+})
 
 // Same-origin video proxy for legacy smart-TV browsers. Old TV WebKit loads the
 // site fine but its dated TLS stack often can't reach the cross-origin R2 public
@@ -275,10 +327,15 @@ if (webDistPath) {
 
 const port = env.PORT
 
-serve({ fetch: app.fetch, port }, () => {
+// Bind IPv4 explicitly. On development machines another service may own
+// [::]:PORT while 127.0.0.1 is free; Node's IPv6 wildcard would then fail even
+// though the Vite proxy deliberately targets the IPv4 loopback.
+serve({ fetch: app.fetch, port, hostname: "0.0.0.0" }, () => {
 	logger.info({ port, webOrigin: WEB_ORIGIN }, "api listening")
 })
 
 if (env.NODE_ENV !== "test") {
 	startRemoteUploadWorker(useCases)
+	if (env.MIRROR_ENABLED)
+		startContentSyncWorker(useCases, env.MIRROR_SYNC_INTERVAL_SECONDS * 1000)
 }

@@ -6,6 +6,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Film,
+	LoaderCircle,
 	Maximize,
 } from "lucide-react"
 import { Suspense, useCallback, useEffect, useRef } from "react"
@@ -54,9 +55,11 @@ function WatchContent({
 	slug: string
 	animeSlug?: string
 }) {
-	const { data } = useSuspenseQuery(
-		orpc.catalog.getEpisode.queryOptions({ input: { slug } }),
-	)
+	const { data } = useSuspenseQuery({
+		...orpc.catalog.getEpisode.queryOptions({ input: { slug } }),
+		refetchInterval: (query) =>
+			query.state.data?.episode.status === "processing" ? 3000 : false,
+	})
 	const episode = data.episode
 	const nav = useEpisodeNav(animeSlug, slug)
 	const navigate = useNavigate()
@@ -198,7 +201,9 @@ function WatchHeader({
 	return (
 		<header className="flex min-w-0 items-center gap-3 p-3 sm:gap-4 sm:p-4 lg:px-10">
 			<BackButton animeSlug={animeSlug} />
-			<p className="min-w-0 truncate text-sm font-semibold sm:text-base">{line}</p>
+			<p className="min-w-0 truncate text-sm font-semibold sm:text-base">
+				{line}
+			</p>
 		</header>
 	)
 }
@@ -214,13 +219,15 @@ function BackButton({ animeSlug }: { animeSlug?: string }) {
 				data-focusable
 				className={className}
 			>
-				<ArrowLeft className="size-5" /> <span className="hidden sm:inline">Kembali</span>
+				<ArrowLeft className="size-5" />{" "}
+				<span className="hidden sm:inline">Kembali</span>
 			</Link>
 		)
 	}
 	return (
 		<Link to="/" data-focusable className={className}>
-			<ArrowLeft className="size-5" /> <span className="hidden sm:inline">Beranda</span>
+			<ArrowLeft className="size-5" />{" "}
+			<span className="hidden sm:inline">Beranda</span>
 		</Link>
 	)
 }
@@ -293,6 +300,8 @@ function Player({
 			/>
 		)
 	}
+	const processing = episode.status === "processing"
+	const failed = episode.status === "failed"
 	return (
 		<div
 			ref={containerRef}
@@ -304,9 +313,25 @@ function Player({
 				fallback="/banner.png"
 			/>
 			<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60">
-				<Film className="size-12 text-anv-muted" />
-				<p className="text-lg font-semibold">Video belum tersedia</p>
-				<p className="text-sm text-anv-muted">Episode ini masih diproses.</p>
+				{processing ? (
+					<LoaderCircle className="size-12 animate-spin text-anv-red" />
+				) : (
+					<Film className="size-12 text-anv-muted" />
+				)}
+				<p className="text-lg font-semibold">
+					{failed
+						? "Video gagal diproses"
+						: processing
+							? "Episode sedang disiapkan"
+							: "Video belum tersedia"}
+				</p>
+				<p className="text-center text-sm text-anv-muted">
+					{processing
+						? "Halaman akan memutar otomatis setelah MP4 siap."
+						: failed
+							? "Silakan hubungi admin untuk mencoba ulang episode ini."
+							: "Episode ini belum memiliki sumber video."}
+				</p>
 			</div>
 		</div>
 	)

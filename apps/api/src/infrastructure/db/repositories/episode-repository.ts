@@ -6,7 +6,9 @@ import type { Db } from "../client.ts"
 import * as schema from "../schema.ts"
 import { toEpisode } from "./episode-mapper.ts"
 
-const PUBLIC_STATUSES = ["ready", "published"]
+// Mirrored episodes remain visible while their first-watch job is processing,
+// and expose a useful failure state instead of disappearing as a 404.
+const PUBLIC_STATUSES = ["ready", "published", "processing", "failed"]
 
 export function createEpisodeRepository(db: Db): EpisodeRepository {
 	return {
@@ -20,7 +22,7 @@ export function createEpisodeRepository(db: Db): EpisodeRepository {
 		},
 
 		async listPublicBySeason(seasonId): Promise<PublicEpisode[]> {
-			return db
+			const rows = await db
 				.select({
 					id: schema.episode.id,
 					episodeNumber: schema.episode.episodeNumber,
@@ -30,6 +32,8 @@ export function createEpisodeRepository(db: Db): EpisodeRepository {
 					durationSeconds: schema.episode.durationSeconds,
 					thumbnailUrl: schema.episode.thumbnailUrl,
 					status: schema.episode.status,
+					mp4Url: schema.episode.mp4Url,
+					playbackUrl: schema.episode.playbackUrl,
 				})
 				.from(schema.episode)
 				.where(
@@ -39,6 +43,10 @@ export function createEpisodeRepository(db: Db): EpisodeRepository {
 					),
 				)
 				.orderBy(asc(schema.episode.episodeNumber))
+			return rows.map(({ mp4Url, playbackUrl, ...episode }) => ({
+				...episode,
+				isReady: Boolean(mp4Url || playbackUrl),
+			}))
 		},
 
 		async findPublicBySlug(slug) {
@@ -61,6 +69,21 @@ export function createEpisodeRepository(db: Db): EpisodeRepository {
 				.select()
 				.from(schema.episode)
 				.where(eq(schema.episode.id, id))
+				.limit(1)
+				.then((r) => r[0])
+			return row ? toEpisode(row) : null
+		},
+
+		async findBySource(provider, sourceId) {
+			const row = await db
+				.select()
+				.from(schema.episode)
+				.where(
+					and(
+						eq(schema.episode.sourceProvider, provider),
+						eq(schema.episode.sourceId, sourceId),
+					),
+				)
 				.limit(1)
 				.then((r) => r[0])
 			return row ? toEpisode(row) : null
@@ -123,6 +146,21 @@ export function createEpisodeRepository(db: Db): EpisodeRepository {
 				.where(eq(schema.episode.id, id))
 				.returning()
 				.then((r) => r[0])
+			return row ? toEpisode(row) : null
+		},
+
+		async claimForMirror(id) {
+			const row = await db
+				.update(schema.episode)
+				.set({ status: "processing", updatedAt: new Date() })
+				.where(
+					and(
+						eq(schema.episode.id, id),
+						eq(schema.episode.status, "published"),
+					),
+				)
+				.returning()
+				.then((rows) => rows[0])
 			return row ? toEpisode(row) : null
 		},
 

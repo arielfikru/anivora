@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm"
+import { and, asc, eq, inArray } from "drizzle-orm"
 
 import type { RemoteUploadJobRepository } from "#/domain/upload/remote-upload-job-repository.ts"
 import type {
@@ -18,7 +18,9 @@ function toJob(row: Row): RemoteUploadJob {
 		seasonId: row.seasonId,
 		animeId: row.animeId,
 		sourceType: row.sourceType as RemoteUploadSourceType,
+		sourceProvider: row.sourceProvider,
 		sourceUrl: row.sourceUrl,
+		targetEpisodeId: row.targetEpisodeId,
 		isArchive: row.isArchive,
 		status: row.status as RemoteUploadStatus,
 		error: row.error,
@@ -44,7 +46,9 @@ export function createRemoteUploadJobRepository(
 					seasonId: data.seasonId,
 					animeId: data.animeId,
 					sourceType: data.sourceType,
+					sourceProvider: data.sourceProvider ?? null,
 					sourceUrl: data.sourceUrl,
+					targetEpisodeId: data.targetEpisodeId ?? null,
 					isArchive: data.isArchive,
 					createdBy: data.createdBy ?? null,
 				})
@@ -70,6 +74,28 @@ export function createRemoteUploadJobRepository(
 				.where(eq(schema.remoteUploadJob.seasonId, seasonId))
 				.orderBy(asc(schema.remoteUploadJob.createdAt))
 			return rows.map(toJob)
+		},
+
+		async findActiveByTargetEpisode(episodeId) {
+			const row = await db
+				.select()
+				.from(schema.remoteUploadJob)
+				.where(
+					and(
+						eq(schema.remoteUploadJob.targetEpisodeId, episodeId),
+						inArray(schema.remoteUploadJob.status, [
+							"pending",
+							"downloading",
+							"extracting",
+							"scanned",
+							"uploading",
+						]),
+					),
+				)
+				.orderBy(asc(schema.remoteUploadJob.createdAt))
+				.limit(1)
+				.then((r) => r[0])
+			return row ? toJob(row) : null
 		},
 
 		async update(id, data) {

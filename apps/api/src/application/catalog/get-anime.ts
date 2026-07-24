@@ -1,4 +1,5 @@
 import type { AnimeRepository } from "#/domain/catalog/anime-repository.ts"
+import type { Anime } from "#/domain/catalog/anime.ts"
 import type { EpisodeRepository } from "#/domain/catalog/episode-repository.ts"
 import type { PublicEpisode } from "#/domain/catalog/episode.ts"
 import type { Season } from "#/domain/catalog/season.ts"
@@ -14,16 +15,18 @@ export interface GetAnimeDeps {
 	animeRepo: AnimeRepository
 	seasonRepo: SeasonRepository
 	episodeRepo: EpisodeRepository
+	hydrate?: (anime: Anime) => Promise<Anime>
 }
 
 type SeasonWithEpisodes = Season & { episodes: PublicEpisode[] }
 
 export function makeGetAnime(deps: GetAnimeDeps) {
 	return async (input: GetAnimeInput, _ctx: OptionalAuthContext) => {
-		const anime = await deps.animeRepo.findBySlug(input.slug)
+		let anime = await deps.animeRepo.findBySlug(input.slug)
 		if (!anime || anime.status !== "published") {
 			throw notFound("Anime not found")
 		}
+		if (deps.hydrate) anime = await deps.hydrate(anime)
 		const seasons = await loadSeasons(deps, anime.id)
 		// Fall back to the first episode thumbnail when artwork is missing.
 		const thumb = firstEpisodeThumbnail(seasons)

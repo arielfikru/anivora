@@ -8,12 +8,22 @@ import type { Cache } from "#/domain/ports/cache.ts"
 import type { ObjectStorage } from "#/domain/ports/object-storage.ts"
 import type { RemoteUploadJobRepository } from "#/domain/upload/remote-upload-job-repository.ts"
 import type { UserRepository } from "#/domain/user/user-repository.ts"
+import type { ContentProviderRegistry } from "#/infrastructure/content/providers/provider.ts"
+import type { ContentSyncStateStore } from "#/infrastructure/content/sync-state.ts"
 
 import { makeListActivityLogs } from "./activity/list-activity-logs.ts"
 import { makeCreateAnime } from "./anime/create-anime.ts"
 import { makeDeleteAnime } from "./anime/delete-anime.ts"
 import { makeUpdateAnime } from "./anime/update-anime.ts"
 import { makeGetSession } from "./auth/get-session.ts"
+import { makeDiscoverProviderAnime } from "./content/discover-provider-anime.ts"
+import { makeEnsureEpisodeMirror } from "./content/ensure-episode-mirror.ts"
+import { makeHydrateProviderAnime } from "./content/hydrate-provider-anime.ts"
+import { makePreloadNextEpisode } from "./content/preload-next-episode.ts"
+import {
+	makeSyncContentProviders,
+	type ContentSyncOptions,
+} from "./content/sync-content-providers.ts"
 import { makeGetAnime } from "./catalog/get-anime.ts"
 import { makeGetAnimeAdmin } from "./catalog/get-anime-admin.ts"
 import { makeGetEpisode } from "./catalog/get-episode.ts"
@@ -63,19 +73,39 @@ export interface Dependencies {
 	objectStorage: ObjectStorage
 	uploadWorkDir: string
 	remoteUploadMaxBytes?: number
+	providers: ContentProviderRegistry
+	contentSyncOptions: ContentSyncOptions
+	contentSyncState: ContentSyncStateStore
+	gofileApiToken?: string
 }
 
-function buildCatalog(deps: Dependencies) {
+function buildCatalog(
+	deps: Dependencies,
+	content: ReturnType<typeof buildContent>,
+) {
+	const preloadNextEpisode = makePreloadNextEpisode({
+		seasonRepo: deps.seasonRepo,
+		episodeRepo: deps.episodeRepo,
+		ensureMirror: content.ensureEpisode,
+	})
 	return {
 		listAnime: makeListAnime({ animeRepo: deps.animeRepo }),
-		searchAnime: makeSearchAnime({ animeRepo: deps.animeRepo }),
+		searchAnime: makeSearchAnime({
+			animeRepo: deps.animeRepo,
+			discover: content.discover,
+		}),
 		getAnime: makeGetAnime({
 			animeRepo: deps.animeRepo,
 			seasonRepo: deps.seasonRepo,
 			episodeRepo: deps.episodeRepo,
+			hydrate: content.hydrate,
 		}),
 		getRelatedAnime: makeGetRelatedAnime({ animeRepo: deps.animeRepo }),
-		getEpisode: makeGetEpisode({ episodeRepo: deps.episodeRepo }),
+		getEpisode: makeGetEpisode({
+			episodeRepo: deps.episodeRepo,
+			ensureMirror: content.ensureEpisode,
+			preloadNext: preloadNextEpisode,
+		}),
 		listGenres: makeListGenres({ genreRepo: deps.genreRepo }),
 	}
 }
@@ -159,10 +189,51 @@ function buildUpload(deps: Dependencies) {
 			objectStorage: deps.objectStorage,
 			workRoot: deps.uploadWorkDir,
 			maxBytes: deps.remoteUploadMaxBytes,
+			gofileApiToken: deps.gofileApiToken,
+			resolveMirror: async (providerId, episodeUrl) => {
+				const provider = deps.providers.get(providerId)
+				if (!provider)
+					throw new Error(`Unknown content provider: ${providerId}`)
+				return provider.resolveEpisodeMedia(episodeUrl)
+			},
 		}),
 		cleanupWorkDirs: makeCleanupWorkDirs({
 			jobRepo: deps.remoteJobRepo,
 			workRoot: deps.uploadWorkDir,
+		}),
+	}
+}
+
+function buildContent(deps: Dependencies) {
+	return {
+		sync: makeSyncContentProviders({
+			animeRepo: deps.animeRepo,
+			seasonRepo: deps.seasonRepo,
+			episodeRepo: deps.episodeRepo,
+			genreRepo: deps.genreRepo,
+			providers: deps.providers,
+			syncState: deps.contentSyncState,
+			objectStorage: deps.objectStorage,
+			options: deps.contentSyncOptions,
+		}),
+		discover: makeDiscoverProviderAnime({
+			animeRepo: deps.animeRepo,
+			providers: deps.providers,
+			objectStorage: deps.objectStorage,
+			options: deps.contentSyncOptions,
+		}),
+		hydrate: makeHydrateProviderAnime({
+			animeRepo: deps.animeRepo,
+			seasonRepo: deps.seasonRepo,
+			episodeRepo: deps.episodeRepo,
+			genreRepo: deps.genreRepo,
+			providers: deps.providers,
+			objectStorage: deps.objectStorage,
+		}),
+		ensureEpisode: makeEnsureEpisodeMirror({
+			episodeRepo: deps.episodeRepo,
+			jobRepo: deps.remoteJobRepo,
+			providers: deps.providers,
 		}),
 	}
 }
@@ -189,13 +260,15 @@ function buildUser(deps: Dependencies) {
 }
 
 export function buildUseCases(deps: Dependencies) {
+	const content = buildContent(deps)
 	return {
 		auth: { getSession: makeGetSession({ auth: deps.auth }) },
 		user: buildUser(deps),
 		activity: {
 			list: makeListActivityLogs({ activityRepo: deps.activityRepo }),
 		},
-		catalog: buildCatalog(deps),
+		catalog: buildCatalog(deps, content),
+		content: { sync: content.sync },
 		anime: buildAnime(deps),
 		season: buildSeason(deps),
 		episode: buildEpisode(deps),

@@ -20,6 +20,35 @@ export function createGenreRepository(db: Db): GenreRepository {
 			return row ?? null
 		},
 
+		async findOrCreate(name, slug) {
+			const inserted = await db
+				.insert(schema.genre)
+				.values({ id: crypto.randomUUID(), name, slug })
+				.onConflictDoNothing({ target: schema.genre.slug })
+				.returning()
+				.then((rows) => rows[0])
+			if (inserted) return inserted
+			const existing = await db
+				.select()
+				.from(schema.genre)
+				.where(eq(schema.genre.slug, slug))
+				.limit(1)
+				.then((rows) => rows[0])
+			if (!existing) throw new Error(`Could not create genre: ${slug}`)
+			return existing
+		},
+
+		async setForAnime(animeId, genreIds) {
+			await db
+				.delete(schema.animeGenre)
+				.where(eq(schema.animeGenre.animeId, animeId))
+			if (genreIds.length === 0) return
+			await db
+				.insert(schema.animeGenre)
+				.values(genreIds.map((genreId) => ({ animeId, genreId })))
+				.onConflictDoNothing()
+		},
+
 		async slugExists(slug) {
 			const row = await db
 				.select({ id: schema.genre.id })

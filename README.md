@@ -124,6 +124,43 @@ GOOGLE_CLIENT_SECRET=
 VITE_POSTHOG_KEY=
 ```
 
+### Authorized content mirroring
+
+Anivora supports provider adapters in addition to native uploads. Mirroring is
+disabled by default. To enable the Anoboy adapter, configure:
+
+```env
+MIRROR_ENABLED=true
+MIRROR_INITIAL_PAGES=5
+MIRROR_DAILY_PAGES=1
+MIRROR_SYNC_INTERVAL_SECONDS=86400
+MIRROR_RIGHTS_OWNER_NAME=Your authorized partner
+MIRROR_LICENSE_TYPE=authorized-mirror
+MIRROR_PERMISSION_DOCUMENT_URL=https://example.com/permission
+ANOBOY_BASE_URL=https://anoboy.be
+GOFILE_API_TOKEN=your-gofile-api-token # only required for Gofile sources
+```
+
+On the first run, pages 1–5 are synchronized. Once provider rows exist, startup
+and the daily timer only refresh page 1. Provider/source IDs make catalog sync
+idempotent. A search miss queries the provider's A–Z index, imports a lightweight
+catalog row, and hydrates its detail/episode list when opened.
+
+Videos use lazy mirroring: opening an episode for the first time creates one
+deduplicated background job, resolves its provider media, downloads it, converts
+it to H.264/AAC fast-start MP4, uploads it to R2, and publishes it. Modern clients
+poll every three seconds; `tv.html` uses ES5 XHR and a five-second refresh loop for
+old smart TVs. When a page has a video player, the worker first asks `yt-dlp` to
+extract its best stream up to 720p; ffmpeg merges/remuxes HLS or split streams.
+If extraction is unsupported (including some Blogger player revisions), it falls
+back to direct video URLs, Google Drive, Gofile, and finally an unknown host as a
+direct response. Gofile's current API requires an account token and may require
+a Premium plan.
+
+Provider-specific scraping lives behind `ContentProvider`; native Anivora rows
+have no source provider. An Otakudesu adapter can be registered alongside Anoboy
+without changing the catalog, job, storage, or TV code.
+
 ### Database
 
 ```bash

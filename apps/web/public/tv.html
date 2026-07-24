@@ -22,6 +22,10 @@
   .card .t { font-size: 14px; padding: 8px 10px; line-height: 1.3; height: 56px; overflow: hidden; }
   .row { display: block; background: #18181b; border: 3px solid transparent; border-radius: 8px;
     padding: 14px 18px; margin-bottom: 10px; cursor: pointer; outline: none; font-size: 18px; }
+  .badge { float: right; display: inline-block; border: 1px solid #52525b; border-radius: 999px;
+    padding: 4px 10px; margin-left: 14px; font-size: 12px; font-weight: bold; line-height: 1.2; }
+  .badge.ready { color: #86efac; border-color: #166534; background: #0d2b19; }
+  .badge.not-ready { color: #a1a1aa; background: #27272a; }
   .btn { display: inline-block; background: #18181b; border: 3px solid transparent; border-radius: 8px;
     padding: 12px 24px; margin: 0 12px 12px 0; cursor: pointer; outline: none; font-size: 18px; }
   .btn.red { background: #e23636; }
@@ -387,6 +391,8 @@
         for (var e = 0; e < eps.length; e++) {
           var ep = eps[e];
           h += '<a class="row focusable" href="#/watch/' + esc(ep.slug) + "?a=" + esc(slug) + '">' +
+               '<span class="badge ' + (ep.isReady ? "ready" : "not-ready") + '">' +
+               (ep.isReady ? "Ready" : "Not Ready") + "</span>" +
                "<b>" + esc(ep.episodeCode) + "</b>" + (ep.title ? " — " + esc(ep.title) : "") + "</a>";
         }
       }
@@ -432,7 +438,7 @@
     var box = document.getElementById("sresults"); if (!box) return;
     if (q.length < 1) { box.innerHTML = '<div class="muted">Ketik dulu judulnya.</div>'; return; }
     box.innerHTML = spinner();
-    api("listAnime", { search: q, limit: 60, offset: 0 }, function (res) {
+    api("searchAnime", { query: q, limit: 60 }, function (res) {
       var a = res.anime || [];
       box.innerHTML = a.length
         ? "<h2>Hasil: " + esc(q) + '</h2><div class="grid">' + cardsHtml(a) + "</div>"
@@ -549,7 +555,17 @@
           '<span class="k">SUBTITLE</span> ganti kualitas · <span class="k">Back</span> kembali</div>';
         app.innerHTML = h; collect();
         if (src) window.__tvPlay(src);
-        else app.innerHTML += '<div class="muted">Video belum tersedia.</div>';
+        else if (ep.status === "processing") {
+          app.innerHTML += '<div class="center"><div class="spin"></div>' +
+            '<p>Episode sedang diproses. Video akan mulai otomatis setelah siap.</p></div>';
+          setTimeout(function () {
+            var current = location.hash || "";
+            if (current.indexOf("#/watch/" + encodeURIComponent(slug)) === 0 ||
+                current.indexOf("#/watch/" + slug) === 0) viewWatch(slug, animeSlug);
+          }, 5000);
+        } else if (ep.status === "failed") {
+          app.innerHTML += '<div class="err">Video gagal diproses. Silakan hubungi admin.</div>';
+        } else app.innerHTML += '<div class="muted">Video belum tersedia.</div>';
       });
     }, showErr);
   }

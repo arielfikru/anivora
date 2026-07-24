@@ -61,7 +61,7 @@ FROM node:22-alpine AS runner
 #    carry no rar codec; proprietary `unrar` was dropped).
 #  - ffmpeg: transcodes/remuxes each video to H.264/AAC faststart mp4 for
 #    progressive playback from R2 (which serves the uploaded file verbatim).
-RUN apk add --no-cache dumb-init wget libarchive-tools ffmpeg
+RUN apk add --no-cache dumb-init wget libarchive-tools ffmpeg yt-dlp chromium
 
 ENV NODE_ENV=production
 ENV PORT=3000
@@ -70,15 +70,15 @@ ENV UPLOAD_DIR=/app/uploads
 ENV UPLOAD_WORK_DIR=/app/work
 
 WORKDIR /app
-COPY --from=prune /out/api ./api
-COPY --from=build /app/apps/web/dist ./web
+COPY --chown=node:node --from=prune /out/api ./api
+COPY --chown=node:node --from=build /app/apps/web/dist ./web
 
 # node:alpine already ships with an unprivileged `node` user (uid 1000).
 # Drop root and make only the data we need writeable at runtime.
 # /app/uploads is a persistent volume mount (admin-uploaded poster/banner
 # images); /app/work is the remote-upload scratch volume. Create both owned by
 # node so the read-only rootfs container can write to the mounts.
-RUN mkdir -p /app/uploads /app/work && chown -R node:node /app
+RUN mkdir -p /app/uploads /app/work && chown node:node /app/uploads /app/work
 USER node
 
 EXPOSE 3000

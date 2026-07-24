@@ -1,4 +1,4 @@
-export type RemoteUploadSourceType = "url" | "drive"
+export type RemoteUploadSourceType = "url" | "drive" | "mirror"
 
 export type RemoteUploadStatus =
 	| "pending"
@@ -35,7 +35,9 @@ export interface RemoteUploadJob {
 	seasonId: string
 	animeId: string
 	sourceType: RemoteUploadSourceType
+	sourceProvider: string | null
 	sourceUrl: string
+	targetEpisodeId: string | null
 	isArchive: boolean
 	status: RemoteUploadStatus
 	error: string | null
@@ -52,7 +54,9 @@ export interface NewRemoteUploadJob {
 	seasonId: string
 	animeId: string
 	sourceType: RemoteUploadSourceType
+	sourceProvider?: string | null
 	sourceUrl: string
+	targetEpisodeId?: string | null
 	isArchive: boolean
 	createdBy?: string | null
 }
