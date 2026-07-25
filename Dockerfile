@@ -46,7 +46,12 @@ FROM node:22-alpine AS prune
 RUN corepack enable pnpm
 WORKDIR /app
 COPY --from=build /app /app
-RUN pnpm deploy --filter=@anivora/api --prod --ignore-scripts --legacy /out/api \
+# Under amd64 QEMU emulation (arm64 host) pnpm completes its work but then
+# aborts on exit with a libuv `uv__io_poll` assertion. Tolerate that advisory
+# exit, then assert the pruned api/ materialised so a genuine failure still
+# breaks the build (same pattern as the deps stage above).
+RUN pnpm deploy --filter=@anivora/api --prod --ignore-scripts --legacy /out/api || true; \
+	test -d /out/api/node_modules \
 	&& rm -rf /out/api/src \
 	&& cp apps/api/dist/main.mjs    /out/api/main.mjs \
 	&& cp apps/api/dist/migrate.mjs /out/api/migrate.mjs \
